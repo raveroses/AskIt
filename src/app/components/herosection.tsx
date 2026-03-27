@@ -31,7 +31,7 @@ export default function HeroSection() {
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
                   transition={{ duration: 0.5 }}
-                  className="bg-logo-color text-background md:w-50 w-40 rounded py-2 md:text-md text-sm font-medium text-center cursor-pointer"
+                  className="bg-logo-color text-background md:w-50 w-40 rounded py-3 md:text-md text-sm font-medium text-center cursor-pointer"
                 >
                   {button.name}
                 </motion.button>
