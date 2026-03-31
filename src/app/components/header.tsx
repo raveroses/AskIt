@@ -14,6 +14,7 @@ import Link from "next/link";
 import * as motion from "motion/react-client";
 import { useState } from "react";
 import { AnimatePresence } from "motion/react";
+import { usePathname } from "next/navigation";
 
 export default function Header() {
   const mobileNavbarIcon = [
@@ -54,8 +55,11 @@ export default function Header() {
   const handleNavOpen = () => {
     setNavOpen((prev) => !prev);
   };
+
+  const pathname= usePathname();
+  const isInterview= pathname && pathname === "/interview" 
   return (
-    <header className="relative">
+    <header className={`relative ${isInterview ? "px-10" :"px-30"} md:py-10 py-5`}>
       <div className="flex flex-row md:justify-between justify-between md:items-center">
         <div className="logo flex items-center gap-1  font-mono  ">
           <span className="text-logo-color">

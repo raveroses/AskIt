@@ -21,11 +21,12 @@ export default function RootLayout({
   return (
     <html lang="en" className={` h-full ${redRose.className} antialiased`}>
       <body
-        className="min-h-full flex flex-col  w-full h-screen bg-no-repeat bg-cover md:px-20 px-2 md:py-10 py-5"
+        className="min-h-full flex flex-col  w-full h-screen bg-no-repeat bg-cover "
         style={{ backgroundImage: "url(/images/background.jpg)" }}
       >
         <Header />
-        {children}
+
+        <div className="">{children}</div>
       </body>
     </html>
   );
