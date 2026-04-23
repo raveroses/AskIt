@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { Red_Rose } from "next/font/google";
 import Header from "./components/header";
 import "./globals.css";
-
+// import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+// import { QueryClientProvider } from "@tanstack/react-query";
+// import {queryClient} from "@/app/components/newQueryClient"
 const redRose = Red_Rose({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
@@ -11,6 +13,9 @@ const redRose = Red_Rose({
 export const metadata: Metadata = {
   title: "AskIt",
   description: "AskIt is an AI powered project",
+  icons: {
+    icon: "/images/ai-human.jpg",
+  },
 };
 
 export default function RootLayout({
@@ -26,7 +31,11 @@ export default function RootLayout({
       >
         <Header />
 
-        <div className="">{children}</div>
+        {/* <QueryClientProvider client={queryClient}> */}
+        {children}
+
+        {/* <ReactQueryDevtools initialIsOpen={true} buttonPosition={"bottom-left"}/>
+        </QueryClientProvider> */}
       </body>
     </html>
   );

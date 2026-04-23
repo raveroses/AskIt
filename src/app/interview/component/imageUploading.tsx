@@ -1,12 +1,32 @@
 "use client";
-import { AudioLines, SendHorizontal, Upload } from "lucide-react";
+import {
+  AudioLines,
+  PanelRight,
+  SendHorizontal,
+  SquareStop,
+  Upload,
+} from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
+import useGlobal from "../../../../zustand/useGlobal";
+import { useEffect } from "react";
 // const MotionImage = motion(Image);
+// beb1dd6c870c92a51293e359b897b7ccf2dde5a5
+
+// curl \
+//   --request POST \
+//   --header 'Authorization: Token YOUR_DEEPGRAM_API_KEY' \
+//   --header 'Content-Type: application/json' \
+//   --data '{"url":"https://static.deepgram.com/examples/interview_speech-analytics.wav"}' \
+//   --url 'https://api.deepgram.com/v1/listen?model=nova-3&smart_format=true'
 
 export default function ImageUploading() {
+  const { isRecording, audioUrl, onRecord, onStopRecording, transcription } =
+    useGlobal();
+  // const result = useGlobal((state) => state.onResult);
+
   return (
-    <section className="w-full h-screen flex md:justify-between md:items-center ">
+    <section className="w-full h-screen flex md:justify-between  md:items-center ">
       <motion.div
         initial={{
           x: "-200vw",
@@ -17,9 +37,11 @@ export default function ImageUploading() {
         transition={{
           duration: 1,
         }}
-        className="chat w-[20%] h-screen p-10 md:flex flex-col gap-10 bg-linear-to-br from-black to-blue-950 hidden "
+        className="chat hidden md:w-[20%] w-[40%] h-screen md:p-10 p-3 md:flex flex-col gap-10 bg-linear-to-br from-black to-blue-950 md:static absolute left-0 z-10 "
       >
-        <h1 className="text-logo-color text-xl font-bold">Chat History</h1>
+        <h1 className="text-logo-color md:text-xl text-md font-bold">
+          Chat History
+        </h1>
 
         <ul className="history list-none overflow-hidden flex flex-col gap-2">
           {/* bg-linear-to-r from-black to-gray-600 */}
@@ -30,7 +52,7 @@ export default function ImageUploading() {
               backgroundImage: "linear-gradient(to right, #000000, #4b5563)",
             }}
             transition={{ duration: 0.6 }}
-            className="py-3  rounded shadow cursor-pointer text-white"
+            className="py-3  rounded shadow cursor-pointer text-white md:text-md text-sm "
           >
             Arisegadget
           </motion.li>
@@ -57,9 +79,9 @@ export default function ImageUploading() {
         </ul>
       </motion.div>
 
-
-
-
+      <div className="px-3 hidden">
+        <PanelRight />
+      </div>
 
       <div className="save md:w-[80%] w-full h-auto bg-linear-to-br from-black to-blue-950 py-20 md:px-50 px-5 flex flex-col gap-3 relative">
         <div className="w-90 flex items-center gap-5 justify-center md:text-md text-sm text-center bg-linear-to-r from-black to-blue-950 py-3 rounded-3xl mx-auto">
@@ -77,7 +99,7 @@ export default function ImageUploading() {
             </option>
           </select>
         </div>
-
+{/* 
         <div className="flex flex-col justify-center items-center gap-3 ">
           <h1 className="text-logo-color md:text-3xl text-2xl font-bold">
             Upload your CV to begin
@@ -86,13 +108,13 @@ export default function ImageUploading() {
             Our AI will tailor interview questions based on your experience
           </h3>
 
-          {/* <div className="flex flex-col gap-5 items-center border border-dotted border-logo-color rounded-2xl w-150 p-10 cursor-pointer ">
+          <div className="flex flex-col gap-5 items-center border border-dotted border-logo-color rounded-2xl w-150 p-10 cursor-pointer ">
             <Upload />
             <input type="file" name="" id="" />
             <h4 className="text-md font-semibold">Drag & drop your CV here</h4>
             <i className="text-sm">PDF, DOCX supported · or click to browse</i>
-          </div> */}
-        </div>
+          </div>
+        </div> */}
         <AnimatePresence>
           <motion.div
             initial={{
@@ -110,11 +132,11 @@ export default function ImageUploading() {
             className="flex flex-col justify-center items-center  gap-10 py-30"
           >
             <Image
+              src="/images/cyber-face.png"
               width={200}
               height={200}
               priority
               alt="ai-image"
-              src="/images/cyber-face.png"
               className="rounded-full"
             />
 
@@ -128,14 +150,19 @@ export default function ImageUploading() {
 
         <div className="chatarea flex flex-col gap-10">
           {/* AI Message (left) */}
+
+          <div>{audioUrl && <audio src={audioUrl} controls />}</div>
+
+          <div className="text-white text-2xl">{transcription}</div>
+
           <div className="flex w-full justify-start">
             <div className="flex items-start gap-3 md:max-w-[70%] max-w-full">
               <Image
+                alt="ai-image"
+                src="/images/cyber-face.png"
                 width={40}
                 height={40}
                 priority
-                alt="ai-image"
-                src="/images/cyber-face.png"
                 className="rounded-full md:block hidden"
               />
               <h1 className="bg-gray-800 text-white p-3 rounded-lg">
@@ -160,6 +187,7 @@ export default function ImageUploading() {
 
         <div className="messagesender bg-blue-950 rounded-xl p-6 md:w-[60%] w-full md:h-30 h-20  flex md:flex-col flex-row md:gap-0 gap-5 fixed  bottom-5  md:left-[30%] left-0 right-0 px-3  ">
           <textarea
+            value={transcription}
             className="border-none outline-none resize-none w-full h-10"
             placeholder="Ask me anything ..."
           ></textarea>
@@ -169,9 +197,15 @@ export default function ImageUploading() {
               <Upload />
             </div>
             <div className="flex items-center gap-2">
-              <div className="rounded-full bg-logo-color p-2 cursor-pointer">
-                <AudioLines />
-              </div>
+              {!isRecording ? (
+                <div className="record rounded-full bg-logo-color p-2 cursor-pointer">
+                  <AudioLines onClick={onRecord} />
+                </div>
+              ) : (
+                <div className="record rounded-full bg-gray-500 p-2 cursor-pointer">
+                  <SquareStop onClick={onStopRecording} />
+                </div>
+              )}
               <div className="rounded-full bg-gray-500 p-2 cursor-pointer">
                 <SendHorizontal />
               </div>

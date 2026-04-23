@@ -59,7 +59,7 @@ export default function Header() {
   const pathname= usePathname();
   const isInterview= pathname && pathname === "/interview" 
   return (
-    <header className={`relative ${isInterview ? "px-10" :"px-30"} md:py-10 py-5`}>
+    <header className={`relative ${isInterview ? "px-10" :"md:px-30 px-10"} md:py-10 py-5`}>
       <div className="flex flex-row md:justify-between justify-between md:items-center">
         <div className="logo flex items-center gap-1  font-mono  ">
           <span className="text-logo-color">
