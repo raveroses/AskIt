@@ -1,7 +1,6 @@
 "use client";
 import { create } from "zustand";
 import { Record } from "@/app/components/types";
-
 let recognition: SpeechRecognition | null = null;
 
 if (typeof window !== "undefined") {
@@ -16,18 +15,20 @@ let mediaRecorder: MediaRecorder | null = null;
 const chunks: Blob[] = [];
 
 const useGlobal = create<Record>((set, get) => ({
-  interviewMode: "",
+  interviewMode: "audio",
+  isTranscriptionOn: false,
   isRecording: false,
   audioUrl: null,
   transcription: "",
 
-  onInterviewMode: (mode) => {
-    set({ interviewMode: mode });
+  onInterviewMode: (event) => {
+    const { value } = event.target;
+    set({ interviewMode: value });
+    console.log(value);
   },
 
-  onRecord: () => {
-    // recognition.lang="en_US"
-    // console.log("Ready to receive a color command.");
+  onVoiceRecord: () => {
+    // const currentInterviewMode = get().interviewMode.slice(2).toLowerCase();
 
     if (!navigator.mediaDevices) {
       console.log("Browser does not support audio");
@@ -47,13 +48,22 @@ const useGlobal = create<Record>((set, get) => ({
         const audioUrl = URL.createObjectURL(audioBlob);
         set({ audioUrl });
       };
-
       mediaRecorder.start();
       set({ isRecording: true });
 
       console.log("Recording started");
     });
+  },
 
+  onStopVoiceRecording: () => {
+    if (mediaRecorder) {
+      mediaRecorder.stop();
+      set({ isRecording: false });
+      console.log("Recording stopped");
+    }
+  },
+
+  onVoiceTranscriptRecord: () => {
     if (recognition !== null) {
       recognition.start();
 
@@ -62,30 +72,28 @@ const useGlobal = create<Record>((set, get) => ({
 
         for (let i = 0; i < event.results.length; i++) {
           for (let t = 0; t < event.results[i].length; t++) {
-            // ✅ t++
             fullTranscript += event.results[i][t].transcript + " ";
           }
         }
 
         set({ transcription: fullTranscript });
+        set({ isTranscriptionOn: true });
       };
     }
   },
-
-  onStopRecording: () => {
-    if (mediaRecorder) {
-      mediaRecorder.stop();
-      set({ isRecording: false });
-      console.log("Recording stopped");
+  onStopVoiceTranscriptRecording: () => {
+    if (recognition !== null) {
+      recognition.stop();
+      recognition.onresult = null;
     }
+    set({ isTranscriptionOn: false });
   },
 
 
-onQuestionChange:(event)=>{
-  const {name,value}= event.target;
-  set({transcription: [name]:value})
-
-}
+  onQuestionChange: (event) => {
+    const { value } = event.target;
+    set({ transcription: value });
+  },
 }));
 
 export default useGlobal;

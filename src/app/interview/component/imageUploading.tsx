@@ -1,6 +1,8 @@
 "use client";
 import {
   AudioLines,
+  CircleStop,
+  Mic,
   PanelRight,
   SendHorizontal,
   SquareStop,
@@ -9,7 +11,6 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
 import useGlobal from "../../../../zustand/useGlobal";
-import { useEffect } from "react";
 // const MotionImage = motion(Image);
 // beb1dd6c870c92a51293e359b897b7ccf2dde5a5
 
@@ -21,12 +22,27 @@ import { useEffect } from "react";
 //   --url 'https://api.deepgram.com/v1/listen?model=nova-3&smart_format=true'
 
 export default function ImageUploading() {
-  const { isRecording, audioUrl, onRecord, onStopRecording, transcription } =
-    useGlobal();
+  const {
+    isRecording,
+    audioUrl,
+    onVoiceRecord,
+    onStopVoiceRecording,
+    transcription,
+    onQuestionChange,
+    onInterviewMode,
+    interviewMode,
+    onVoiceTranscriptRecord,
+    onStopVoiceTranscriptRecording,
+    isTranscriptionOn,
+  } = useGlobal();
   // const result = useGlobal((state) => state.onResult);
 
+  const currentInterviewMode = interviewMode.slice(2).toLowerCase();
+  console.log(currentInterviewMode);
+  // const currentInterviewMode = get().interviewMode.slice(0, 1);
+
   return (
-    <section className="w-full h-screen flex md:justify-between  md:items-center ">
+    <section className="w-full h-auto flex md:justify-between">
       <motion.div
         initial={{
           x: "-200vw",
@@ -44,8 +60,6 @@ export default function ImageUploading() {
         </h1>
 
         <ul className="history list-none overflow-hidden flex flex-col gap-2">
-          {/* bg-linear-to-r from-black to-gray-600 */}
-
           <motion.li
             initial={{ backgroundImage: "none" }}
             whileHover={{
@@ -87,8 +101,8 @@ export default function ImageUploading() {
         <div className="w-90 flex items-center gap-5 justify-center md:text-md text-sm text-center bg-linear-to-r from-black to-blue-950 py-3 rounded-3xl mx-auto">
           <div>Choose your interview mode</div>
           <select
-            name=""
-            id=""
+            value={interviewMode}
+            onChange={onInterviewMode}
             className="cursor-pointer border-none outline-none"
           >
             <option className="border-none outline-none cursor-pointer bg-transparent">
@@ -99,7 +113,7 @@ export default function ImageUploading() {
             </option>
           </select>
         </div>
-{/* 
+
         <div className="flex flex-col justify-center items-center gap-3 ">
           <h1 className="text-logo-color md:text-3xl text-2xl font-bold">
             Upload your CV to begin
@@ -114,7 +128,7 @@ export default function ImageUploading() {
             <h4 className="text-md font-semibold">Drag & drop your CV here</h4>
             <i className="text-sm">PDF, DOCX supported · or click to browse</i>
           </div>
-        </div> */}
+        </div>
         <AnimatePresence>
           <motion.div
             initial={{
@@ -153,7 +167,7 @@ export default function ImageUploading() {
 
           <div>{audioUrl && <audio src={audioUrl} controls />}</div>
 
-          <div className="text-white text-2xl">{transcription}</div>
+          {/* <div className="text-white text-2xl">{transcription}</div> */}
 
           <div className="flex w-full justify-start">
             <div className="flex items-start gap-3 md:max-w-[70%] max-w-full">
@@ -185,25 +199,53 @@ export default function ImageUploading() {
           </div>
         </div>
 
-        <div className="messagesender bg-blue-950 rounded-xl p-6 md:w-[60%] w-full md:h-30 h-20  flex md:flex-col flex-row md:gap-0 gap-5 fixed  bottom-5  md:left-[30%] left-0 right-0 px-3  ">
+        <div
+          className="messagesender bg-blue-950 rounded-xl py-3 md:w-[60%] w-full md:h-auto
+         flex flex-col gap-0 fixed md:bottom-5 bottom-2 md:left-[30%] left-0 right-0 px-3  "
+        >
           <textarea
             value={transcription}
-            className="border-none outline-none resize-none w-full h-10"
+            className="border-none outline-none resize-none w-full h-auto "
             placeholder="Ask me anything ..."
+            onChange={onQuestionChange}
+            onInput={(e) => {
+              const target = e.target as HTMLTextAreaElement;
+              target.style.height = "auto";
+              target.style.height =
+                target.scrollHeight > 200 ? "250px" : "auto";
+              console.log(target.scrollHeight);
+            }}
           ></textarea>
 
           <div className="flex justify-between gap-3 items-center">
             <div className="upload cursor-pointer">
               <Upload />
             </div>
+
             <div className="flex items-center gap-2">
+              {!isTranscriptionOn ? (
+                <div
+                  className="record-text rounded-full bg-gray-500 p-2 cursor-pointer"
+                  onClick={onVoiceTranscriptRecord}
+                >
+                  <Mic />
+                </div>
+              ) : (
+                <div
+                  className="record-text rounded-full bg-gray-500 p-2 cursor-pointer"
+                  onClick={onStopVoiceTranscriptRecording}
+                >
+                  <CircleStop />
+                </div>
+              )}
+
               {!isRecording ? (
                 <div className="record rounded-full bg-logo-color p-2 cursor-pointer">
-                  <AudioLines onClick={onRecord} />
+                  <AudioLines onClick={onVoiceRecord} />
                 </div>
               ) : (
                 <div className="record rounded-full bg-gray-500 p-2 cursor-pointer">
-                  <SquareStop onClick={onStopRecording} />
+                  <SquareStop onClick={onStopVoiceRecording} />
                 </div>
               )}
               <div className="rounded-full bg-gray-500 p-2 cursor-pointer">
@@ -214,6 +256,12 @@ export default function ImageUploading() {
         </div>
       </div>
     </section>
+    // <>
+    //   Lorem ipsum dolor sit amet consectetur adipisicing elit. Placeat hic
+    //   reprehenderit ea eum omnis, delectus ullam debitis unde consequatur.
+    //   Accusantium illum quos rem eum at ipsam deserunt repellat perspiciatis
+    //   nihil.
+    // </>
   );
 }
 // shadow-[6px_0px_0px_0px_rgba(0,0,0,0.2)]
