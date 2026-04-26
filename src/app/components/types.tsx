@@ -10,4 +10,5 @@ export interface Record {
   onVoiceTranscriptRecord: () => void;
   onStopVoiceTranscriptRecording: () => void;
   onQuestionChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  waveFrequencyCreated: () => void;
 }

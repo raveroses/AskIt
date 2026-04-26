@@ -10,7 +10,10 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
-import useGlobal from "../../../../zustand/useGlobal";
+// import useGlobal from "../../../../zustand/useGlobal";
+import useGlobal from "../../../../zustand/useSecondGlobal";
+import { useRecorder } from "../../../../zustand/useRecorder";
+import { useWaveform } from "../../../../zustand/useWaveform";
 // const MotionImage = motion(Image);
 // beb1dd6c870c92a51293e359b897b7ccf2dde5a5
 
@@ -22,23 +25,31 @@ import useGlobal from "../../../../zustand/useGlobal";
 //   --url 'https://api.deepgram.com/v1/listen?model=nova-3&smart_format=true'
 
 export default function ImageUploading() {
+  // const {
+  //   isRecording,
+  //   audioUrl,
+  //   onVoiceRecord,
+  //   onStopVoiceRecording,
+  //   transcription,
+  //   onQuestionChange,
+  //   onInterviewMode,
+  //   interviewMode,
+  //   onVoiceTranscriptRecord,
+  //   onStopVoiceTranscriptRecording,
+  //   isTranscriptionOn,
+  // } = useGlobal();
+
+  const { audioUrl, transcription, isTranscription, isRecording } = useGlobal();
+  const {canvasRef}= useWaveform()
   const {
-    isRecording,
-    audioUrl,
-    onVoiceRecord,
-    onStopVoiceRecording,
-    transcription,
-    onQuestionChange,
-    onInterviewMode,
-    interviewMode,
-    onVoiceTranscriptRecord,
-    onStopVoiceTranscriptRecording,
-    isTranscriptionOn,
-  } = useGlobal();
+    startVoiceNote,
+    stopVoiceNote,
+    initSpeechRecognition,
+    stopInitSpeechRecognition,
+  } = useRecorder();
+
   // const result = useGlobal((state) => state.onResult);
 
-  const currentInterviewMode = interviewMode.slice(2).toLowerCase();
-  console.log(currentInterviewMode);
   // const currentInterviewMode = get().interviewMode.slice(0, 1);
 
   return (
@@ -198,7 +209,7 @@ export default function ImageUploading() {
             </div>
           </div>
         </div>
-
+        <canvas id="canvas" ref={canvasRef}></canvas>
         <div
           className="messagesender bg-blue-950 rounded-xl py-3 md:w-[60%] w-full md:h-auto
          flex flex-col gap-0 fixed md:bottom-5 bottom-2 md:left-[30%] left-0 right-0 px-3  "
@@ -207,7 +218,7 @@ export default function ImageUploading() {
             value={transcription}
             className="border-none outline-none resize-none w-full h-auto "
             placeholder="Ask me anything ..."
-            onChange={onQuestionChange}
+            // onChange={onQuestionChange}
             onInput={(e) => {
               const target = e.target as HTMLTextAreaElement;
               target.style.height = "auto";
@@ -223,17 +234,17 @@ export default function ImageUploading() {
             </div>
 
             <div className="flex items-center gap-2">
-              {!isTranscriptionOn ? (
+              {!isTranscription ? (
                 <div
                   className="record-text rounded-full bg-gray-500 p-2 cursor-pointer"
-                  onClick={onVoiceTranscriptRecord}
+                  onClick={initSpeechRecognition}
                 >
                   <Mic />
                 </div>
               ) : (
                 <div
                   className="record-text rounded-full bg-gray-500 p-2 cursor-pointer"
-                  onClick={onStopVoiceTranscriptRecording}
+                  onClick={stopInitSpeechRecognition}
                 >
                   <CircleStop />
                 </div>
@@ -241,11 +252,11 @@ export default function ImageUploading() {
 
               {!isRecording ? (
                 <div className="record rounded-full bg-logo-color p-2 cursor-pointer">
-                  <AudioLines onClick={onVoiceRecord} />
+                  <AudioLines onClick={startVoiceNote} />
                 </div>
               ) : (
                 <div className="record rounded-full bg-gray-500 p-2 cursor-pointer">
-                  <SquareStop onClick={onStopVoiceRecording} />
+                  <SquareStop onClick={stopVoiceNote} />
                 </div>
               )}
               <div className="rounded-full bg-gray-500 p-2 cursor-pointer">
