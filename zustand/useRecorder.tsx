@@ -7,32 +7,39 @@ export const useRecorder = () => {
   const chunksRef = useRef<Blob[]>([]);
   const recognitionRef = useRef<any>(null);
 
-  const { setAudioUrl, setTranscription, startRecording, stopRecording } =
-    useGlobal();
+  const {
+    setAudioUrl,
+    setTranscription,
+    startRecording,
+    stopRecording,
+    startTranscription,
+    stopTranscription,
+  } = useGlobal();
 
   const { setup } = useWaveform();
 
+  const SpeechRecognition =
+    window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!SpeechRecognition) return;
+
+  const recognition = new SpeechRecognition();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+
   const initSpeechRecognition = () => {
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    if (!SpeechRecognition) return;
-
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-
-    recognition.onresult = (event) => {
-      let text = "";
-
-      for (let i = 0; i < event.results.length; i++) {
-        text += event.results[i][0].transcript + " ";
-      }
-
-      setTranscription(text);
-    };
-
-    recognitionRef.current = recognition;
+    if (recognition !== null) {
+      recognition.onresult = (event) => {
+        let text = "";
+        for (let i = 0; i < event.results.length; i++) {
+          text += event.results[i][0].transcript + " ";
+        }
+        setTranscription(text);
+      };
+      recognition.start();
+      startTranscription();
+    }
 
     setup();
   };
@@ -59,6 +66,7 @@ export const useRecorder = () => {
     startRecording();
 
     // initSpeechRecognition();
+
     recognitionRef.current?.start();
   };
 
@@ -68,8 +76,11 @@ export const useRecorder = () => {
   };
 
   const stopInitSpeechRecognition = () => {
-    recognitionRef.current?.stop();
-    stopRecording();
+    if (recognition !== null) {
+      console.log("I want to stop");
+      recognition.stop();
+      stopTranscription();
+    }
   };
 
   return {

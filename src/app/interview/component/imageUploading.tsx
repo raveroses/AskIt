@@ -40,13 +40,15 @@ export default function ImageUploading() {
   // } = useGlobal();
 
   const { audioUrl, transcription, isTranscription, isRecording } = useGlobal();
-  const {canvasRef}= useWaveform()
+  const { canvasRef } = useWaveform();
   const {
     startVoiceNote,
     stopVoiceNote,
     initSpeechRecognition,
     stopInitSpeechRecognition,
   } = useRecorder();
+
+  console.log(transcription);
 
   // const result = useGlobal((state) => state.onResult);
 
@@ -112,8 +114,8 @@ export default function ImageUploading() {
         <div className="w-90 flex items-center gap-5 justify-center md:text-md text-sm text-center bg-linear-to-r from-black to-blue-950 py-3 rounded-3xl mx-auto">
           <div>Choose your interview mode</div>
           <select
-            value={interviewMode}
-            onChange={onInterviewMode}
+            // value={interviewMode}
+            // onChange={onInterviewMode}
             className="cursor-pointer border-none outline-none"
           >
             <option className="border-none outline-none cursor-pointer bg-transparent">
@@ -209,7 +211,12 @@ export default function ImageUploading() {
             </div>
           </div>
         </div>
-        <canvas id="canvas" ref={canvasRef}></canvas>
+        <canvas
+          ref={canvasRef}
+          width={500}
+          height={50}
+          className="bg-white rounded"
+        />
         <div
           className="messagesender bg-blue-950 rounded-xl py-3 md:w-[60%] w-full md:h-auto
          flex flex-col gap-0 fixed md:bottom-5 bottom-2 md:left-[30%] left-0 right-0 px-3  "

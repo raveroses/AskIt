@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 
 export const useWaveform = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -42,7 +42,7 @@ export const useWaveform = () => {
     const render = () => {
       requestAnimationFrame(render);
 
-      analyser.getByteTimeDomainData(dataArray);
+      analyser.getByteTimeDomainData(dataArray as Uint8Array<ArrayBuffer>);
 
       ctx.clearRect(0, 0, width, height);
 
