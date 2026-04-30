@@ -1,71 +1,102 @@
-import { useRef } from "react";
+import { useRef, useCallback } from "react";
 
 export const useWaveform = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const dataArrayRef = useRef<Uint8Array | null>(null);
+  const rafIdRef = useRef<number | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const historyRef = useRef<number[]>([]); // 👈 stores bar height history
 
-  const setup = async () => {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-    const audioCtx = new AudioContext();
-    audioCtxRef.current = audioCtx;
-
-    const analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 2048;
-
-    const source = audioCtx.createMediaStreamSource(stream);
-    source.connect(analyser);
-
-    analyserRef.current = analyser;
-
-    const bufferLength = analyser.frequencyBinCount;
-    dataArrayRef.current = new Uint8Array(bufferLength);
-
-    draw();
-  };
-
-  const draw = () => {
+  const draw = useCallback(() => {
     const canvas = canvasRef.current;
     const analyser = analyserRef.current;
     const dataArray = dataArrayRef.current;
-
     if (!canvas || !analyser || !dataArray) return;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const width = canvas.width;
-    const height = canvas.height;
+    canvas.width = canvas.offsetWidth || 800;
+    canvas.height = canvas.offsetHeight || 40;
+
+    const barWidth = 3;
+    const gap = 2;
+    const totalBars = Math.floor(canvas.width / (barWidth + gap));
+
+    // prefill history with zeros (silence)
+    historyRef.current = new Array(totalBars).fill(0);
+
+    let frameCount = 0;
 
     const render = () => {
-      requestAnimationFrame(render);
+      rafIdRef.current = requestAnimationFrame(render);
+      frameCount++;
 
-      analyser.getByteTimeDomainData(dataArray as Uint8Array<ArrayBuffer>);
+      const width = canvas.width;
+      const height = canvas.height;
+
+      analyser.getByteFrequencyData(dataArray as Uint8Array<ArrayBuffer>);
+
+      // every 2 frames, push a new volume sample into history
+      if (frameCount % 2 === 0) {
+        // average the frequency data into one volume value
+        const avg = dataArray.reduce((sum, v) => sum + v, 0) / dataArray.length;
+        const normalized = avg / 255;
+
+        historyRef.current.push(normalized);
+        if (historyRef.current.length > totalBars) {
+          historyRef.current.shift(); // remove oldest bar
+        }
+      }
 
       ctx.clearRect(0, 0, width, height);
 
-      ctx.beginPath();
+      historyRef.current.forEach((value, i) => {
+        const barHeight = Math.max(3, value * height * 0.9);
+        const x = i * (barWidth + gap);
+        const y = (height - barHeight) / 2;
 
-      const sliceWidth = width / dataArray.length;
-      let x = 0;
-
-      for (let i = 0; i < dataArray.length; i++) {
-        const v = dataArray[i] / 128.0;
-        const y = (v * height) / 2;
-
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-
-        x += sliceWidth;
-      }
-
-      ctx.stroke();
+        ctx.fillStyle = "#f59e0b";
+        ctx.beginPath();
+        ctx.roundRect(x, y, barWidth, barHeight, 1.5);
+        ctx.fill();
+      });
     };
 
     render();
-  };
+  }, []);
 
-  return { canvasRef, setup };
+  const setup = useCallback(async () => {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    streamRef.current = stream;
+
+    const audioCtx = new AudioContext();
+    audioCtxRef.current = audioCtx;
+
+    const analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+    analyser.smoothingTimeConstant = 0.8;
+
+    const source = audioCtx.createMediaStreamSource(stream);
+    source.connect(analyser);
+
+    analyserRef.current = analyser;
+    dataArrayRef.current = new Uint8Array(analyser.frequencyBinCount);
+
+    draw();
+  }, [draw]);
+
+  const stop = useCallback(() => {
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+    audioCtxRef.current?.close();
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    historyRef.current = [];
+  }, []);
+
+  return { canvasRef, setup, stop };
 };

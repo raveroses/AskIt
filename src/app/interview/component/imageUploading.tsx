@@ -10,50 +10,44 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
-// import useGlobal from "../../../../zustand/useGlobal";
 import useGlobal from "../../../../zustand/useSecondGlobal";
 import { useRecorder } from "../../../../zustand/useRecorder";
-import { useWaveform } from "../../../../zustand/useWaveform";
-// const MotionImage = motion(Image);
-// beb1dd6c870c92a51293e359b897b7ccf2dde5a5
-
-// curl \
-//   --request POST \
-//   --header 'Authorization: Token YOUR_DEEPGRAM_API_KEY' \
-//   --header 'Content-Type: application/json' \
-//   --data '{"url":"https://static.deepgram.com/examples/interview_speech-analytics.wav"}' \
-//   --url 'https://api.deepgram.com/v1/listen?model=nova-3&smart_format=true'
+import { useRef, useState } from "react";
+import useIsMobile from "../../../../hooks/useIsMobile";
 
 export default function ImageUploading() {
-  // const {
-  //   isRecording,
-  //   audioUrl,
-  //   onVoiceRecord,
-  //   onStopVoiceRecording,
-  //   transcription,
-  //   onQuestionChange,
-  //   onInterviewMode,
-  //   interviewMode,
-  //   onVoiceTranscriptRecord,
-  //   onStopVoiceTranscriptRecording,
-  //   isTranscriptionOn,
-  // } = useGlobal();
-
   const { audioUrl, transcription, isTranscription, isRecording } = useGlobal();
-  const { canvasRef } = useWaveform();
   const {
     startVoiceNote,
     stopVoiceNote,
     initSpeechRecognition,
     stopInitSpeechRecognition,
+    canvasRef,
+    fullTime,
   } = useRecorder();
 
-  console.log(transcription);
+  const { isMobile } = useIsMobile();
 
-  // const result = useGlobal((state) => state.onResult);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
 
-  // const currentInterviewMode = get().interviewMode.slice(0, 1);
+  const togglePlay = () => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play();
+    }
+    setIsPlaying(!isPlaying);
+  };
 
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  };
   return (
     <section className="w-full h-auto flex md:justify-between">
       <motion.div
@@ -175,48 +169,92 @@ export default function ImageUploading() {
           </motion.div>
         </AnimatePresence>
 
-        <div className="chatarea flex flex-col gap-10">
-          {/* AI Message (left) */}
-
-          <div>{audioUrl && <audio src={audioUrl} controls />}</div>
-
-          {/* <div className="text-white text-2xl">{transcription}</div> */}
-
-          <div className="flex w-full justify-start">
-            <div className="flex items-start gap-3 md:max-w-[70%] max-w-full">
-              <Image
-                alt="ai-image"
-                src="/images/cyber-face.png"
-                width={40}
-                height={40}
-                priority
-                className="rounded-full md:block hidden"
-              />
-              <h1 className="bg-gray-800 text-white p-3 rounded-lg">
-                Lorem ipsum dolor sit amet consectetur adipisicing elit. At sint
-                voluptatem provident reprehenderit quis voluptatum expedita
-                recusandae repudiandae doloremque laborum libero minus est
-                suscipit nesciunt alias ullam, ipsum sequi quas.
-              </h1>
-            </div>
-          </div>
-
+        <ul className="chatarea flex flex-col gap-10 w-full">
           {/* User Message (right) */}
-          <div className="flex w-full md:justify-end">
-            <div className="md:max-w-[70%] max-w-full bg-blue-600 text-white p-3 rounded-lg">
-              Lorem ipsum dolor sit amet consectetur adipisicing elit.
-              Repudiandae accusamus illo maiores sunt non expedita cum nemo
-              praesentium iusto obcaecati numquam natus, corporis iste voluptate
-              sapiente, velit tempore at eius.
-            </div>
-          </div>
-        </div>
-        <canvas
-          ref={canvasRef}
-          width={500}
-          height={50}
-          className="bg-white rounded"
-        />
+          <li
+            className={` flex justify-end items-end ml-auto ${audioUrl ? " bg-[#1e2d45] px-4 py-2 rounded-2xl md:max-w-[40%] " : " w-full md:max-w-[70%] max-w-full bg-blue-600 text-white p-3 rounded-lg"} `}
+          >
+            {audioUrl ? (
+              <span className="flex items-center">
+                <audio
+                  ref={audioRef}
+                  src={audioUrl}
+                  onTimeUpdate={() =>
+                    setCurrentTime(audioRef.current?.currentTime || 0)
+                  }
+                  onLoadedMetadata={() =>
+                    setDuration(audioRef.current?.duration || 0)
+                  }
+                  onEnded={() => setIsPlaying(false)}
+                />
+                <button
+                  onClick={togglePlay}
+                  className="text-amber-400 shrink-0"
+                >
+                  {isPlaying ? (
+                    <svg
+                      width="28"
+                      height="28"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <rect x="6" y="4" width="4" height="16" rx="1" />
+                      <rect x="14" y="4" width="4" height="16" rx="1" />
+                    </svg>
+                  ) : (
+                    <svg
+                      width="28"
+                      height="28"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  )}
+                </button>
+                <canvas
+                  ref={canvasRef}
+                  width={isMobile ? 450 : 320}
+                  height={40}
+                  className="w-full h-10 block rounded"
+                />
+                <span className="text-xs text-slate-400 shrink-0 font-mono">
+                  {formatTime(currentTime)} / {formatTime(duration)}
+                </span>
+              </span>
+            ) : (
+              <span>
+                Lorem ipsum dolor sit amet consectetur adipisicing elit.
+                Repudiandae accusamus illo maiores sunt non expedita cum nemo
+                praesentium iusto obcaecati numquam natus, corporis iste
+                voluptate sapiente, velit tempore at eius.
+              </span>
+            )}
+
+            {/* </div> */}
+          </li>
+
+          <li className="flex w-full justify-start items-start gap-3 md:max-w-[70%] max-w-full">
+            {/* <div className="flex items-start gap-3 md:max-w-[70%] max-w-full"> */}
+            <Image
+              alt="ai-image"
+              src="/images/cyber-face.png"
+              width={40}
+              height={40}
+              priority
+              className="rounded-full md:block hidden"
+            />
+
+            <span className="bg-gray-800 text-white p-3 rounded-lg">
+              Lorem ipsum dolor sit amet consectetur adipisicing elit. At sint
+              voluptatem provident reprehenderit quis voluptatum expedita
+              recusandae repudiandae doloremque laborum libero minus est
+              suscipit nesciunt alias ullam, ipsum sequi quas.
+            </span>
+            {/* </div> */}
+          </li>
+        </ul>
+
         <div
           className="messagesender bg-blue-950 rounded-xl py-3 md:w-[60%] w-full md:h-auto
          flex flex-col gap-0 fixed md:bottom-5 bottom-2 md:left-[30%] left-0 right-0 px-3  "
@@ -235,26 +273,41 @@ export default function ImageUploading() {
             }}
           ></textarea>
 
+          <div>
+            <canvas
+              ref={canvasRef}
+              width={800} // 👈 actual pixel buffer size
+              height={40} // 👈 actual pixel buffer size
+              className="w-full h-5 block rounded-lg"
+            />
+          </div>
           <div className="flex justify-between gap-3 items-center">
-            <div className="upload cursor-pointer">
-              <Upload />
-            </div>
+            {!isRecording && (
+              <div className="upload cursor-pointer">
+                <Upload />
+              </div>
+            )}
+            {isRecording && <div className="text-2xl ">{fullTime}</div>}
 
             <div className="flex items-center gap-2">
-              {!isTranscription ? (
-                <div
-                  className="record-text rounded-full bg-gray-500 p-2 cursor-pointer"
-                  onClick={initSpeechRecognition}
-                >
-                  <Mic />
-                </div>
-              ) : (
-                <div
-                  className="record-text rounded-full bg-gray-500 p-2 cursor-pointer"
-                  onClick={stopInitSpeechRecognition}
-                >
-                  <CircleStop />
-                </div>
+              {!isRecording && (
+                <>
+                  {!isTranscription ? (
+                    <div
+                      className="record-text rounded-full bg-gray-500 p-2 cursor-pointer"
+                      onClick={initSpeechRecognition}
+                    >
+                      <Mic />
+                    </div>
+                  ) : (
+                    <div
+                      className="record-text rounded-full bg-gray-500 p-2 cursor-pointer"
+                      onClick={stopInitSpeechRecognition}
+                    >
+                      <CircleStop />
+                    </div>
+                  )}
+                </>
               )}
 
               {!isRecording ? (
@@ -263,12 +316,14 @@ export default function ImageUploading() {
                 </div>
               ) : (
                 <div className="record rounded-full bg-gray-500 p-2 cursor-pointer">
-                  <SquareStop onClick={stopVoiceNote} />
+                  <SendHorizontal onClick={stopVoiceNote} />
                 </div>
               )}
-              <div className="rounded-full bg-gray-500 p-2 cursor-pointer">
-                <SendHorizontal />
-              </div>
+              {!isRecording && (
+                <div className="rounded-full bg-gray-500 p-2 cursor-pointer">
+                  <SendHorizontal />
+                </div>
+              )}
             </div>
           </div>
         </div>

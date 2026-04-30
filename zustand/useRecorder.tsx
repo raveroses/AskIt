@@ -1,11 +1,17 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import useGlobal from "./useSecondGlobal";
 import { useWaveform } from "./useWaveform";
 
 export const useRecorder = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const recognitionRef = useRef<any>(null);
+  const startTimeRef = useRef<number>(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const [fullTime, setFullTime] = useState<string>("");
+
 
   const {
     setAudioUrl,
@@ -16,7 +22,7 @@ export const useRecorder = () => {
     stopTranscription,
   } = useGlobal();
 
-  const { setup } = useWaveform();
+  const { setup, stop, canvasRef } = useWaveform();
 
   const SpeechRecognition =
     window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -28,7 +34,6 @@ export const useRecorder = () => {
   recognition.interimResults = true;
 
   const initSpeechRecognition = () => {
-
     if (recognition !== null) {
       recognition.onresult = (event) => {
         let text = "";
@@ -49,6 +54,7 @@ export const useRecorder = () => {
 
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
+    streamRef.current = stream;
     const recorder = new MediaRecorder(stream);
     mediaRecorderRef.current = recorder;
 
@@ -68,11 +74,30 @@ export const useRecorder = () => {
     // initSpeechRecognition();
 
     recognitionRef.current?.start();
+    setup();
+
+    startTimeRef.current = Date.now();
+
+    intervalRef.current = setInterval(() => {
+      const elapse = Date.now() - startTimeRef.current;
+
+      const minutes = Math.floor(elapse / 60000);
+      const seconds = Math.floor((elapse % 60000) / 1000);
+      const formattedSeconds = seconds.toString().padStart(2, "0");
+      setFullTime(`${minutes}:${formattedSeconds}`);
+    }, 1000);
   };
 
   const stopVoiceNote = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
     mediaRecorderRef.current?.stop();
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
     stopRecording();
+    stop();
   };
 
   const stopInitSpeechRecognition = () => {
@@ -80,13 +105,15 @@ export const useRecorder = () => {
       console.log("I want to stop");
       recognition.stop();
       stopTranscription();
+      stop(); // stop waveform + cancel animation frame + close audio context
     }
   };
-
   return {
     startVoiceNote,
     stopVoiceNote,
     initSpeechRecognition,
     stopInitSpeechRecognition,
+    canvasRef,
+    fullTime
   };
 };
