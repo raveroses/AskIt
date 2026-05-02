@@ -5,7 +5,7 @@ import {
   Mic,
   PanelRight,
   SendHorizontal,
-  SquareStop,
+  // SquareStop,
   Upload,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
@@ -14,6 +14,7 @@ import useGlobal from "../../../../zustand/useSecondGlobal";
 import { useRecorder } from "../../../../zustand/useRecorder";
 import { useRef, useState } from "react";
 import useIsMobile from "../../../../hooks/useIsMobile";
+import useChat from "../../../../zustand/useChat";
 
 export default function ImageUploading() {
   const { audioUrl, transcription, isTranscription, isRecording } = useGlobal();
@@ -27,6 +28,19 @@ export default function ImageUploading() {
   } = useRecorder();
 
   const { isMobile } = useIsMobile();
+  const {
+    handleTextOnchange,
+    textInput,
+    onInputFocus,
+    handleInputChange,
+    handleDragLeave,
+    handleDragOver,
+    openFilePicker,
+    handleDrop,
+    inputRef,
+  } = useChat();
+
+  const focus = textInput.isOnFocus;
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -48,6 +62,9 @@ export default function ImageUploading() {
     const s = Math.floor(seconds % 60);
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
+
+  console.log(textInput.document_upload);
+
   return (
     <section className="w-full h-auto flex md:justify-between">
       <motion.div
@@ -121,7 +138,9 @@ export default function ImageUploading() {
           </select>
         </div>
 
-        <div className="flex flex-col justify-center items-center gap-3 ">
+        <div
+          className={`flex flex-col justify-center items-center gap-3 opacity-30 ${textInput.isDragging ? "opacity-30" : "opacity-100"}`}
+        >
           <h1 className="text-logo-color md:text-3xl text-2xl font-bold">
             Upload your CV to begin
           </h1>
@@ -129,9 +148,24 @@ export default function ImageUploading() {
             Our AI will tailor interview questions based on your experience
           </h3>
 
-          <div className="flex flex-col gap-5 items-center border border-dotted border-logo-color rounded-2xl w-150 p-10 cursor-pointer ">
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={openFilePicker}
+            className="flex flex-col gap-5 items-center border border-dotted border-logo-color rounded-2xl w-150 p-10 cursor-pointer "
+          >
             <Upload />
-            <input type="file" name="" id="" />
+            <input
+              type="file"
+              name="document_upload"
+              id="document_upload"
+              ref={inputRef}
+              onChange={handleInputChange}
+              className="hidden"
+              accept=".pdf, .doc, .docx, application/pdf, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            />
+
             <h4 className="text-md font-semibold">Drag & drop your CV here</h4>
             <i className="text-sm">PDF, DOCX supported · or click to browse</i>
           </div>
@@ -256,85 +290,81 @@ export default function ImageUploading() {
         </ul>
 
         <div
-          className="messagesender bg-blue-950 rounded-xl py-3 md:w-[60%] w-full md:h-auto
-         flex flex-col gap-0 fixed md:bottom-5 bottom-2 md:left-[30%] left-0 right-0 px-3  "
+          className={`messagesender bg-blue-950 rounded-xl py-3 md:w-[60%] w-full md:h-auto
+         flex  gap-0 fixed md:bottom-5 bottom-2 md:left-[30%] left-0 right-0 px-3  ${focus ? "justify-between items-center" : "flex-col"}`}
         >
           <textarea
-            value={transcription}
+            value={transcription || textInput.userChat}
+            name="userChat"
             className="border-none outline-none resize-none w-full h-auto "
             placeholder="Ask me anything ..."
-            // onChange={onQuestionChange}
-            onInput={(e) => {
-              const target = e.target as HTMLTextAreaElement;
-              target.style.height = "auto";
-              target.style.height =
-                target.scrollHeight > 200 ? "250px" : "auto";
-              console.log(target.scrollHeight);
-            }}
+            onChange={handleTextOnchange}
+            onFocus={() => onInputFocus(true)}
+            onBlur={() => onInputFocus(false)}
           ></textarea>
 
-          <div>
-            <canvas
-              ref={canvasRef}
-              width={800} // 👈 actual pixel buffer size
-              height={40} // 👈 actual pixel buffer size
-              className="w-full h-5 block rounded-lg"
-            />
-          </div>
-          <div className="flex justify-between gap-3 items-center">
-            {!isRecording && (
-              <div className="upload cursor-pointer">
-                <Upload />
-              </div>
-            )}
-            {isRecording && <div className="text-2xl ">{fullTime}</div>}
-
-            <div className="flex items-center gap-2">
-              {!isRecording && (
-                <>
-                  {!isTranscription ? (
-                    <div
-                      className="record-text rounded-full bg-gray-500 p-2 cursor-pointer"
-                      onClick={initSpeechRecognition}
-                    >
-                      <Mic />
-                    </div>
-                  ) : (
-                    <div
-                      className="record-text rounded-full bg-gray-500 p-2 cursor-pointer"
-                      onClick={stopInitSpeechRecognition}
-                    >
-                      <CircleStop />
-                    </div>
-                  )}
-                </>
-              )}
-
-              {!isRecording ? (
-                <div className="record rounded-full bg-logo-color p-2 cursor-pointer">
-                  <AudioLines onClick={startVoiceNote} />
-                </div>
-              ) : (
-                <div className="record rounded-full bg-gray-500 p-2 cursor-pointer">
-                  <SendHorizontal onClick={stopVoiceNote} />
-                </div>
-              )}
-              {!isRecording && (
-                <div className="rounded-full bg-gray-500 p-2 cursor-pointer">
-                  <SendHorizontal />
-                </div>
-              )}
+          <div className={`${focus ? "hidden" : "block"}`}>
+            <div>
+              <canvas
+                ref={canvasRef}
+                width={800}
+                height={60}
+                className="w-full h-5 block rounded-lg"
+              />
             </div>
+            <div className="flex justify-between gap-3 items-center">
+              {!isRecording && (
+                <div className="upload cursor-pointer" onClick={openFilePicker}>
+                  <Upload />
+                </div>
+              )}
+              {isRecording && <div className="text-2xl ">{fullTime}</div>}
+
+              <div className="flex items-center gap-2">
+                {!isRecording && (
+                  <>
+                    {!isTranscription ? (
+                      <div
+                        className="record-text rounded-full bg-gray-500 p-2 cursor-pointer"
+                        onClick={initSpeechRecognition}
+                      >
+                        <Mic />
+                      </div>
+                    ) : (
+                      <div
+                        className="record-text rounded-full bg-gray-500 p-2 cursor-pointer"
+                        onClick={stopInitSpeechRecognition}
+                      >
+                        <CircleStop />
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {!isRecording ? (
+                  <div className="record rounded-full bg-logo-color p-2 cursor-pointer">
+                    <AudioLines onClick={startVoiceNote} />
+                  </div>
+                ) : (
+                  <div className="record rounded-full bg-gray-500 p-2 cursor-pointer">
+                    <SendHorizontal onClick={stopVoiceNote} />
+                  </div>
+                )}
+                {!isRecording && (
+                  <div className="rounded-full bg-gray-500 p-2 cursor-pointer">
+                    <SendHorizontal />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          <div
+            className={`rounded-full bg-gray-500 p-2 cursor-pointer ${focus ? "block" : "hidden"}`}
+          >
+            <SendHorizontal />
           </div>
         </div>
       </div>
     </section>
-    // <>
-    //   Lorem ipsum dolor sit amet consectetur adipisicing elit. Placeat hic
-    //   reprehenderit ea eum omnis, delectus ullam debitis unde consequatur.
-    //   Accusantium illum quos rem eum at ipsam deserunt repellat perspiciatis
-    //   nihil.
-    // </>
   );
 }
-// shadow-[6px_0px_0px_0px_rgba(0,0,0,0.2)]
