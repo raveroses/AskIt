@@ -1,16 +1,22 @@
-import { useRef, useCallback } from "react";
-
+"use client";
+import { useRef, useCallback, useState } from "react";
+import useGlobal from "./useSecondGlobal";
 export const useWaveform = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const secondCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
   const analyserRef = useRef<AnalyserNode | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const dataArrayRef = useRef<Uint8Array | null>(null);
   const rafIdRef = useRef<number | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const historyRef = useRef<number[]>([]); // 👈 stores bar height history
+  const barStoreRef = useRef<number[] | null>(null);
+  const { isRecording } = useGlobal();
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
+    const secondCanvas = secondCanvasRef.current;
     const analyser = analyserRef.current;
     const dataArray = dataArrayRef.current;
     if (!canvas || !analyser || !dataArray) return;
@@ -18,13 +24,12 @@ export const useWaveform = () => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    canvas.width = canvas.offsetWidth || 800;
-    canvas.height = canvas.offsetHeight || 40;
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
 
     const barWidth = 3;
     const gap = 2;
     const totalBars = Math.floor(canvas.width / (barWidth + gap));
-
     // prefill history with zeros (silence)
     historyRef.current = new Array(totalBars).fill(0);
 
@@ -46,6 +51,7 @@ export const useWaveform = () => {
         const normalized = avg / 255;
 
         historyRef.current.push(normalized);
+
         if (historyRef.current.length > totalBars) {
           historyRef.current.shift(); // remove oldest bar
         }

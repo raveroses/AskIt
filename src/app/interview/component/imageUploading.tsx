@@ -27,7 +27,8 @@ export default function ImageUploading() {
     fullTime,
   } = useRecorder();
 
-  const { isMobile } = useIsMobile();
+  const isMobile = useIsMobile();
+
   const {
     handleTextOnchange,
     textInput,
@@ -62,8 +63,6 @@ export default function ImageUploading() {
     const s = Math.floor(seconds % 60);
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
-
-  console.log(textInput.document_upload);
 
   return (
     <section className="w-full h-auto flex md:justify-between">
@@ -247,7 +246,7 @@ export default function ImageUploading() {
                   )}
                 </button>
                 <canvas
-                  ref={canvasRef}
+                  // ref={secondCanvasRef}
                   width={isMobile ? 450 : 320}
                   height={40}
                   className="w-full h-10 block rounded"

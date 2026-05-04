@@ -1,3 +1,4 @@
+"use client";
 import { useRef, useState } from "react";
 import useGlobal from "./useSecondGlobal";
 import { useWaveform } from "./useWaveform";
@@ -12,7 +13,6 @@ export const useRecorder = () => {
 
   const [fullTime, setFullTime] = useState<string>("");
 
-
   const {
     setAudioUrl,
     setTranscription,
@@ -25,15 +25,25 @@ export const useRecorder = () => {
   const { setup, stop, canvasRef } = useWaveform();
 
   const SpeechRecognition =
-    window.SpeechRecognition || window.webkitSpeechRecognition;
+    typeof window !== "undefined"
+      ? window.SpeechRecognition || window.webkitSpeechRecognition
+      : null;
 
-  if (!SpeechRecognition) return;
-
-  const recognition = new SpeechRecognition();
-  recognition.continuous = true;
-  recognition.interimResults = true;
+  if (!SpeechRecognition)
+    return {
+      startVoiceNote: async () => {},
+      stopVoiceNote: () => {},
+      initSpeechRecognition: () => {},
+      stopInitSpeechRecognition: () => {},
+      canvasRef: null,
+      fullTime: "",
+    };
 
   const initSpeechRecognition = () => {
+    const recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
+    recognition.continuous = true;
+    recognition.interimResults = true;
     if (recognition !== null) {
       recognition.onresult = (event) => {
         let text = "";
@@ -70,10 +80,6 @@ export const useRecorder = () => {
 
     recorder.start();
     startRecording();
-
-    // initSpeechRecognition();
-
-    recognitionRef.current?.start();
     setup();
 
     startTimeRef.current = Date.now();
@@ -101,12 +107,9 @@ export const useRecorder = () => {
   };
 
   const stopInitSpeechRecognition = () => {
-    if (recognition !== null) {
-      console.log("I want to stop");
-      recognition.stop();
-      stopTranscription();
-      stop(); // stop waveform + cancel animation frame + close audio context
-    }
+    recognitionRef.current?.stop();
+    stopTranscription();
+    stop();
   };
   return {
     startVoiceNote,
@@ -114,6 +117,6 @@ export const useRecorder = () => {
     initSpeechRecognition,
     stopInitSpeechRecognition,
     canvasRef,
-    fullTime
+    fullTime,
   };
 };
