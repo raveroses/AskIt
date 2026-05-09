@@ -7,12 +7,22 @@ type ChatType = {
   document_upload: File | null;
 };
 const useChat = () => {
-  const [textInput, setTextInput] = useState<ChatType>({
-    userChat: "",
-    isOnFocus: false,
-    document_upload: null,
-    isDragging: false,
+  const [textInput, setTextInput] = useState<ChatType>(() => {
+    try {
+      const saved = localStorage.getItem("draft");
+      if (saved) return JSON.parse(saved);
+    } catch {
+      console.log("error");
+    }
+    return {
+      userChat: "",
+      isOnFocus: false,
+      document_upload: null,
+      isDragging: false,
+    };
   });
+
+  const [documentUrl, setDocumentUrl] = useState("");
 
   const inputRef = useRef<HTMLInputElement>(null);
   const handleTextOnchange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -23,6 +33,13 @@ const useChat = () => {
     setTextInput((prev) => ({ ...prev, [target.name]: target.value }));
   };
 
+  // {
+  //   userChat: "",
+  //   isOnFocus: false,
+  //   document_upload: null,
+  //   isDragging: false,
+  // }
+
   const onInputFocus = (focused: boolean) => {
     setTextInput((prev) => ({
       ...prev,
@@ -30,7 +47,6 @@ const useChat = () => {
     }));
   };
 
-  // const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
   const handleFile = (incoming: File | null) => {
     if (!incoming) return;
 
@@ -38,6 +54,9 @@ const useChat = () => {
       ...prev,
       document_upload: incoming,
     }));
+
+    const urlExtraction = URL.createObjectURL(incoming);
+    setDocumentUrl(urlExtraction);
   };
 
   const openFilePicker = () => inputRef.current.click();
@@ -83,7 +102,7 @@ const useChat = () => {
     handleDrop,
     inputRef,
     handleInputChange,
-    
+    documentUrl,
   };
 };
 

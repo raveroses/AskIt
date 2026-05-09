@@ -1,9 +1,10 @@
 "use client";
 import { useRef, useCallback, useState } from "react";
-import useGlobal from "./useSecondGlobal";
+// import useGlobal from "./useSecondGlobal";
+// import { useRecorder } from "./useRecorder";
 export const useWaveform = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const secondCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  // const secondCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const analyserRef = useRef<AnalyserNode | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -11,12 +12,12 @@ export const useWaveform = () => {
   const rafIdRef = useRef<number | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const historyRef = useRef<number[]>([]); // 👈 stores bar height history
-  const barStoreRef = useRef<number[] | null>(null);
-  const { isRecording } = useGlobal();
+  // const barStoreRef = useRef<number[] | null>(null);
+  // const { isRecording } = useGlobal();
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
-    const secondCanvas = secondCanvasRef.current;
+    // const secondCanvas = secondCanvasRef.current;
     const analyser = analyserRef.current;
     const dataArray = dataArrayRef.current;
     if (!canvas || !analyser || !dataArray) return;

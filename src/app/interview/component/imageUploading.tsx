@@ -39,6 +39,7 @@ export default function ImageUploading() {
     openFilePicker,
     handleDrop,
     inputRef,
+    documentUrl,
   } = useChat();
 
   const focus = textInput.isOnFocus;
@@ -121,22 +122,6 @@ export default function ImageUploading() {
       </div>
 
       <div className="save md:w-[80%] w-full h-auto bg-linear-to-br from-black to-blue-950 py-20 md:px-50 px-5 flex flex-col gap-3 relative">
-        <div className="w-90 flex items-center gap-5 justify-center md:text-md text-sm text-center bg-linear-to-r from-black to-blue-950 py-3 rounded-3xl mx-auto">
-          <div>Choose your interview mode</div>
-          <select
-            // value={interviewMode}
-            // onChange={onInterviewMode}
-            className="cursor-pointer border-none outline-none"
-          >
-            <option className="border-none outline-none cursor-pointer bg-transparent">
-              🎤 Audio
-            </option>
-            <option className="border-none outline-none cursor-pointer">
-              💬 Text
-            </option>
-          </select>
-        </div>
-
         <div
           className={`flex flex-col justify-center items-center gap-3 opacity-30 ${textInput.isDragging ? "opacity-30" : "opacity-100"}`}
         >
@@ -191,7 +176,7 @@ export default function ImageUploading() {
               height={200}
               priority
               alt="ai-image"
-              className="rounded-full"
+              className="rounded-full md:block hidden "
             />
 
             <h1 className="md:text-4xl text-xl  font-bold md:px-40 p-5 text-center">
@@ -285,6 +270,26 @@ export default function ImageUploading() {
               suscipit nesciunt alias ullam, ipsum sequi quas.
             </span>
             {/* </div> */}
+          </li>
+
+          <li>
+            <div
+              className="flex items-center gap-3 bg-white/10 rounded-xl p-4 w-[280px] cursor-pointer hover:bg-white/20 transition"
+              onClick={() => window.open(documentUrl, "_blank")}
+            >
+              <div className="bg-amber-500 rounded-lg p-3 text-white text-2xl">
+                📄
+              </div>
+              <div className="flex flex-col">
+                <p className="text-white font-semibold text-sm truncate w-[160px]">
+                  {textInput?.document_upload?.name || "document.pdf"}
+                </p>
+                <p className="text-white/50 text-xs">PDF Document</p>
+              </div>
+
+              {/* Arrow */}
+              <div className="ml-auto text-white/50 text-lg">›</div>
+            </div>
           </li>
         </ul>
 

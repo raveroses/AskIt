@@ -12,3 +12,12 @@ export interface Record {
   onQuestionChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
   waveFrequencyCreated: () => void;
 }
+
+type SpeechRecognition = any;
+
+declare global {
+  interface Window {
+    SpeechRecognition: new () => SpeechRecognition;
+    webkitSpeechRecognition: new () => SpeechRecognition;
+  }
+}

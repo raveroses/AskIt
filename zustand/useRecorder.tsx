@@ -12,7 +12,6 @@ export const useRecorder = () => {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [fullTime, setFullTime] = useState<string>("");
-
   const {
     setAudioUrl,
     setTranscription,
@@ -24,22 +23,15 @@ export const useRecorder = () => {
 
   const { setup, stop, canvasRef } = useWaveform();
 
-  const SpeechRecognition =
-    typeof window !== "undefined"
-      ? window.SpeechRecognition || window.webkitSpeechRecognition
-      : null;
-
-  if (!SpeechRecognition)
-    return {
-      startVoiceNote: async () => {},
-      stopVoiceNote: () => {},
-      initSpeechRecognition: () => {},
-      stopInitSpeechRecognition: () => {},
-      canvasRef: null,
-      fullTime: "",
-    };
+  // const SpeechRecognition = new SpeechRecognition()
+  const getSpeechRecognition = () => {
+    if (typeof window === "undefined") return null;
+    return window.SpeechRecognition || window.webkitSpeechRecognition;
+  };
 
   const initSpeechRecognition = () => {
+    const SpeechRecognition = getSpeechRecognition();
+    if (!SpeechRecognition) return;
     const recognition = new SpeechRecognition();
     recognitionRef.current = recognition;
     recognition.continuous = true;
@@ -111,6 +103,7 @@ export const useRecorder = () => {
     stopTranscription();
     stop();
   };
+
   return {
     startVoiceNote,
     stopVoiceNote,
