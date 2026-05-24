@@ -10,14 +10,14 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
-import useGlobal from "../../../../zustand/useSecondGlobal";
+import useGlobal from "../../../../zustand/useGlobal";
 import { useRecorder } from "../../../../zustand/useRecorder";
-import { useRef, useState } from "react";
-import useIsMobile from "../../../../hooks/useIsMobile";
+import { useEffect, useRef, useState } from "react";
 import useChat from "../../../../zustand/useChat";
+import useText from "../../../../zustand/useText";
 
 export default function ImageUploading() {
-  const { audioUrl, transcription, isTranscription, isRecording } = useGlobal();
+  const { audioUrl, isTranscription, isRecording } = useGlobal();
   const {
     startVoiceNote,
     stopVoiceNote,
@@ -25,9 +25,13 @@ export default function ImageUploading() {
     stopInitSpeechRecognition,
     canvasRef,
     fullTime,
+    secondCanvasRef,
+    currentTime,
+    setCurrentTime,
+    duration,
+    setDuration,
+    playBack,
   } = useRecorder();
-
-  const isMobile = useIsMobile();
 
   const {
     handleTextOnchange,
@@ -42,12 +46,18 @@ export default function ImageUploading() {
     documentUrl,
   } = useChat();
 
+  const { inputText, interimTranscript } = useText();
+  console.log(inputText);
+
+  useEffect(() => {
+    if (audioUrl && duration > 0) {
+      playBack();
+    }
+  }, [audioUrl, currentTime, duration, playBack]);
   const focus = textInput.isOnFocus;
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
 
   const togglePlay = () => {
     if (!audioRef.current) return;
@@ -64,6 +74,9 @@ export default function ImageUploading() {
     const s = Math.floor(seconds % 60);
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
+
+  console.log(isTranscription);
+  console.log(isRecording);
 
   return (
     <section className="w-full h-auto flex md:justify-between">
@@ -193,16 +206,23 @@ export default function ImageUploading() {
             className={` flex justify-end items-end ml-auto ${audioUrl ? " bg-[#1e2d45] px-4 py-2 rounded-2xl md:max-w-[40%] " : " w-full md:max-w-[70%] max-w-full bg-blue-600 text-white p-3 rounded-lg"} `}
           >
             {audioUrl ? (
-              <span className="flex items-center">
+              <div className="flex items-center gap-2 w-full">
                 <audio
                   ref={audioRef}
                   src={audioUrl}
-                  onTimeUpdate={() =>
-                    setCurrentTime(audioRef.current?.currentTime || 0)
-                  }
-                  onLoadedMetadata={() =>
-                    setDuration(audioRef.current?.duration || 0)
-                  }
+                  onTimeUpdate={() => {
+                    const time = audioRef.current?.currentTime || 0;
+                    const audioDuration =
+                      audioRef.current?.duration || duration;
+                    setCurrentTime(time);
+                    setDuration(audioDuration);
+                    playBack(time, audioDuration);
+                  }}
+                  onLoadedMetadata={() => {
+                    const audioDuration = audioRef.current?.duration || 0;
+                    setDuration(audioDuration);
+                    playBack(0, audioDuration);
+                  }}
                   onEnded={() => setIsPlaying(false)}
                 />
                 <button
@@ -231,15 +251,15 @@ export default function ImageUploading() {
                   )}
                 </button>
                 <canvas
-                  // ref={secondCanvasRef}
-                  width={isMobile ? 450 : 320}
+                  ref={secondCanvasRef}
+                  width={300}
                   height={40}
-                  className="w-full h-10 block rounded"
+                  className="flex-1 h-10 block rounded"
                 />
                 <span className="text-xs text-slate-400 shrink-0 font-mono">
                   {formatTime(currentTime)} / {formatTime(duration)}
                 </span>
-              </span>
+              </div>
             ) : (
               <span>
                 Lorem ipsum dolor sit amet consectetur adipisicing elit.
@@ -272,25 +292,27 @@ export default function ImageUploading() {
             {/* </div> */}
           </li>
 
-          <li>
-            <div
-              className="flex items-center gap-3 bg-white/10 rounded-xl p-4 w-[280px] cursor-pointer hover:bg-white/20 transition"
-              onClick={() => window.open(documentUrl, "_blank")}
-            >
-              <div className="bg-amber-500 rounded-lg p-3 text-white text-2xl">
-                📄
-              </div>
-              <div className="flex flex-col">
-                <p className="text-white font-semibold text-sm truncate w-[160px]">
-                  {textInput?.document_upload?.name || "document.pdf"}
-                </p>
-                <p className="text-white/50 text-xs">PDF Document</p>
-              </div>
+          {textInput?.document_upload?.name && (
+            <li>
+              <div
+                className="flex items-center gap-3 bg-white/10 rounded-xl p-4 w-70 cursor-pointer hover:bg-white/20 transition"
+                onClick={() => window.open(documentUrl, "_blank")}
+              >
+                <div className="bg-amber-500 rounded-lg p-3 text-white text-2xl">
+                  📄
+                </div>
+                <div className="flex flex-col">
+                  <p className="text-white font-semibold text-sm truncate w-40">
+                    {textInput?.document_upload?.name || "document.pdf"}
+                  </p>
+                  <p className="text-white/50 text-xs">PDF Document</p>
+                </div>
 
-              {/* Arrow */}
-              <div className="ml-auto text-white/50 text-lg">›</div>
-            </div>
-          </li>
+                {/* Arrow */}
+                <div className="ml-auto text-white/50 text-lg">›</div>
+              </div>
+            </li>
+          )}
         </ul>
 
         <div
@@ -298,8 +320,8 @@ export default function ImageUploading() {
          flex  gap-0 fixed md:bottom-5 bottom-2 md:left-[30%] left-0 right-0 px-3  ${focus ? "justify-between items-center" : "flex-col"}`}
         >
           <textarea
-            value={transcription || textInput.userChat}
-            name="userChat"
+            // value={inputText}
+            value={inputText + interimTranscript}
             className="border-none outline-none resize-none w-full h-auto "
             placeholder="Ask me anything ..."
             onChange={handleTextOnchange}
@@ -308,14 +330,13 @@ export default function ImageUploading() {
           ></textarea>
 
           <div className={`${focus ? "hidden" : "block"}`}>
-            <div>
-              <canvas
-                ref={canvasRef}
-                width={800}
-                height={60}
-                className="w-full h-5 block rounded-lg"
-              />
-            </div>
+            <canvas
+              ref={canvasRef}
+              width={800}
+              height={40}
+              className={`w-full rounded-lg  ${isRecording || isTranscription ? "block" : "hidden"}`}
+            />
+
             <div className="flex justify-between gap-3 items-center">
               {!isRecording && (
                 <div className="upload cursor-pointer" onClick={openFilePicker}>

@@ -1,23 +1,23 @@
 "use client";
 import { useRef, useCallback, useState } from "react";
-// import useGlobal from "./useSecondGlobal";
-// import { useRecorder } from "./useRecorder";
+
 export const useWaveform = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  // const secondCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const secondCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const analyserRef = useRef<AnalyserNode | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const dataArrayRef = useRef<Uint8Array | null>(null);
   const rafIdRef = useRef<number | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const historyRef = useRef<number[]>([]); // 👈 stores bar height history
-  // const barStoreRef = useRef<number[] | null>(null);
-  // const { isRecording } = useGlobal();
+
+  const historyRef = useRef<number[]>([]);
+
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
-    // const secondCanvas = secondCanvasRef.current;
     const analyser = analyserRef.current;
     const dataArray = dataArrayRef.current;
     if (!canvas || !analyser || !dataArray) return;
@@ -28,11 +28,7 @@ export const useWaveform = () => {
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
 
-    const barWidth = 3;
-    const gap = 2;
-    const totalBars = Math.floor(canvas.width / (barWidth + gap));
-    // prefill history with zeros (silence)
-    historyRef.current = new Array(totalBars).fill(0);
+    historyRef.current = [];
 
     let frameCount = 0;
 
@@ -43,24 +39,26 @@ export const useWaveform = () => {
       const width = canvas.width;
       const height = canvas.height;
 
-      analyser.getByteFrequencyData(dataArray as Uint8Array<ArrayBuffer>);
+      analyser.getByteTimeDomainData(dataArray as Uint8Array<ArrayBuffer>);
 
-      // every 2 frames, push a new volume sample into history
       if (frameCount % 2 === 0) {
-        // average the frequency data into one volume value
-        const avg = dataArray.reduce((sum, v) => sum + v, 0) / dataArray.length;
-        const normalized = avg / 255;
-
-        historyRef.current.push(normalized);
-
-        if (historyRef.current.length > totalBars) {
-          historyRef.current.shift(); // remove oldest bar
+        let peak = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+          const value = Math.abs(dataArray[i] - 128) / 128;
+          if (value > peak) peak = value;
         }
+        historyRef.current.push(peak);
       }
 
       ctx.clearRect(0, 0, width, height);
 
-      historyRef.current.forEach((value, i) => {
+      const barWidth = 3;
+      const gap = 2;
+      const maxVisibleBars = Math.floor(width / (barWidth + gap));
+      const history = historyRef.current;
+      const visibleBars = history.slice(-maxVisibleBars);
+
+      visibleBars.forEach((value, i) => {
         const barHeight = Math.max(3, value * height * 0.9);
         const x = i * (barWidth + gap);
         const y = (height - barHeight) / 2;
@@ -75,25 +73,76 @@ export const useWaveform = () => {
     render();
   }, []);
 
-  const setup = useCallback(async () => {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    streamRef.current = stream;
+  const setup = useCallback(
+    async (stream?: MediaStream) => {
+      const localStream =
+        stream ?? (await navigator.mediaDevices.getUserMedia({ audio: true }));
+      streamRef.current = localStream;
 
-    const audioCtx = new AudioContext();
-    audioCtxRef.current = audioCtx;
+      const audioCtx = new AudioContext();
+      audioCtxRef.current = audioCtx;
 
-    const analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 256;
-    analyser.smoothingTimeConstant = 0.8;
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.8;
 
-    const source = audioCtx.createMediaStreamSource(stream);
-    source.connect(analyser);
+      const source = audioCtx.createMediaStreamSource(localStream);
+      source.connect(analyser);
 
-    analyserRef.current = analyser;
-    dataArrayRef.current = new Uint8Array(analyser.frequencyBinCount);
+      analyserRef.current = analyser;
+      dataArrayRef.current = new Uint8Array(analyser.frequencyBinCount);
 
-    draw();
-  }, [draw]);
+      draw();
+    },
+    [draw],
+  );
+
+  const playBack = useCallback(
+    (playbackTime = currentTime, playbackDuration = duration) => {
+      const canvas = secondCanvasRef.current;
+      if (!canvas) return;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+
+      const barWidth = 3;
+      const gap = 2;
+
+      // This shows the maximum bar we want visible
+      const maxVisibleBars = Math.floor(canvas.width / (barWidth + gap));
+      // This clear the whole rectangles
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // This is showing every sound in the history
+      const history = historyRef.current;
+
+      const sampledBars: number[] = [];
+      for (let i = 0; i < maxVisibleBars; i++) {
+        const srcIndex = Math.floor((i / maxVisibleBars) * history.length);
+        sampledBars.push(history[srcIndex] ?? 0);
+      }
+
+      const progress =
+        playbackDuration > 0 ? playbackTime / playbackDuration : 0;
+      const playedBars = Math.floor(sampledBars.length * progress);
+
+      sampledBars.forEach((value, i) => {
+        const barHeight = Math.max(3, value * canvas.height * 0.9);
+        const x = i * (barWidth + gap);
+        const y = (canvas.height - barHeight) / 2;
+
+        ctx.fillStyle = i < playedBars ? "#f59e0b" : "#22242a";
+        ctx.beginPath();
+        ctx.roundRect(x, y, barWidth, barHeight, 1.5);
+        ctx.fill();
+      });
+    },
+    [currentTime, duration],
+  );
 
   const stop = useCallback(() => {
     if (rafIdRef.current !== null) {
@@ -102,8 +151,17 @@ export const useWaveform = () => {
     }
     audioCtxRef.current?.close();
     streamRef.current?.getTracks().forEach((t) => t.stop());
-    historyRef.current = [];
   }, []);
 
-  return { canvasRef, setup, stop };
+  return {
+    canvasRef,
+    secondCanvasRef,
+    setup,
+    stop,
+    currentTime,
+    setCurrentTime,
+    duration,
+    setDuration,
+    playBack,
+  };
 };

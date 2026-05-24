@@ -1,21 +1,25 @@
 "use client";
 import { useRef, useState } from "react";
+import useText from "./useText";
+
 type ChatType = {
   userChat: string;
   isOnFocus: boolean;
   isDragging: boolean;
   document_upload: File | null;
 };
+
 const useChat = () => {
+  const { setInputText } = useText();
   const [textInput, setTextInput] = useState<ChatType>(() => {
     try {
-      const saved = localStorage.getItem("draft");
+      const saved = localStorage.getItem("inputdraft");
       if (saved) return JSON.parse(saved);
     } catch {
       console.log("error");
     }
     return {
-      userChat: "",
+      // userChat: "",
       isOnFocus: false,
       document_upload: null,
       isDragging: false,
@@ -27,10 +31,14 @@ const useChat = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const handleTextOnchange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const target = e.target;
-    target.style.height = "auto";
-    target.style.height = target.scrollHeight > 200 ? "250px" : "auto";
+    target.style.height = "0px";
 
-    setTextInput((prev) => ({ ...prev, [target.name]: target.value }));
+    const height = Math.min(target.scrollHeight, 250);
+
+    target.style.height = `${height}px`;
+
+    setInputText(target.value);
+    localStorage.setItem("draft", target.value);
   };
 
   // {
