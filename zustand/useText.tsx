@@ -30,7 +30,6 @@ const useText = create<Store>((set) => ({
 
 
 
-// api:AIzaSyD1d-4tvBaydlre4srj9_tN8VBhogf_-Y4
 
 // export default useText;
 // import { GoogleGenAI } from "@google/genai";
