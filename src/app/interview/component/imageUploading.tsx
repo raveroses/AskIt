@@ -1,4 +1,10 @@
 "use client";
+import { pdfjs } from "react-pdf";
+
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  "pdfjs-dist/build/pdf.worker.min.mjs",
+  import.meta.url,
+).toString();
 import {
   AudioLines,
   CircleStop,
@@ -15,6 +21,7 @@ import { useRecorder } from "../../../../zustand/useRecorder";
 import { useEffect, useRef, useState } from "react";
 import useChat from "../../../../zustand/useChat";
 import useText from "../../../../zustand/useText";
+import { Document, Page } from "react-pdf";
 
 export default function ImageUploading() {
   const { audioUrl, isTranscription, isRecording } = useGlobal();
@@ -47,7 +54,7 @@ export default function ImageUploading() {
   } = useChat();
 
   const { inputText, interimTranscript } = useText();
-  console.log(inputText);
+  console.log(documentUrl);
 
   useEffect(() => {
     if (audioUrl && duration > 0) {
@@ -80,6 +87,11 @@ export default function ImageUploading() {
 
   return (
     <section className="w-full h-auto flex md:justify-between">
+      {/* {documentUrl ? (
+        <Document file={documentUrl} loading={<></>} noData={<></>}>
+          <Page pageNumber={1} loading={<></>} />
+        </Document>
+      ) : null} */}
       <motion.div
         initial={{
           x: "-200vw",
@@ -129,11 +141,9 @@ export default function ImageUploading() {
           </motion.li>
         </ul>
       </motion.div>
-
       <div className="px-3 hidden">
         <PanelRight />
       </div>
-
       <div className="save md:w-[80%] w-full h-auto bg-linear-to-br from-black to-blue-950 py-20 md:px-50 px-5 flex flex-col gap-3 relative">
         <div
           className={`flex flex-col justify-center items-center gap-3 opacity-30 ${textInput.isDragging ? "opacity-30" : "opacity-100"}`}
@@ -319,15 +329,29 @@ export default function ImageUploading() {
           className={`messagesender bg-blue-950 rounded-xl py-3 md:w-[60%] w-full md:h-auto
          flex  gap-0 fixed md:bottom-5 bottom-2 md:left-[30%] left-0 right-0 px-3  ${focus ? "justify-between items-center" : "flex-col"}`}
         >
-          <textarea
-            // value={inputText}
-            value={inputText + interimTranscript}
-            className="border-none outline-none resize-none w-full h-auto "
-            placeholder="Ask me anything ..."
-            onChange={handleTextOnchange}
-            onFocus={() => onInputFocus(true)}
-            onBlur={() => onInputFocus(false)}
-          ></textarea>
+          {documentUrl ? (
+            <div className="overflow-hidden rounded-lg bg-white w-[150px]">
+              <Document file={documentUrl} loading={<></>} noData={<></>}>
+                <Page
+                  pageNumber={1}
+                  loading={<></>}
+                  width={150}
+                  renderTextLayer={false}
+                  renderAnnotationLayer={false}
+                />
+              </Document>
+            </div>
+          ) : (
+            <textarea
+              // value={inputText}
+              value={inputText + interimTranscript}
+              className="border-none outline-none resize-none w-full h-auto "
+              placeholder="Ask me anything ..."
+              onChange={handleTextOnchange}
+              onFocus={() => onInputFocus(true)}
+              onBlur={() => onInputFocus(false)}
+            ></textarea>
+          )}
 
           <div className={`${focus ? "hidden" : "block"}`}>
             <canvas

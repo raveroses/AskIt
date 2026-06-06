@@ -1,7 +1,16 @@
 "use client";
+
+import "dotenv/config";
+import { GoogleGenAI } from "@google/genai";
+import * as fs from "node:fs";
 import { useRef, useState } from "react";
 import useText from "./useText";
 
+// const apiKeyStorage = process.env.API_KEY;
+
+// const ai = new GoogleGenAI({ apiKey: apiKeyStorage });
+// //inputText is the input text
+// console.log("apikey", apiKeyStorage);
 type ChatType = {
   userChat: string;
   isOnFocus: boolean;
@@ -26,6 +35,8 @@ const useChat = () => {
     };
   });
 
+  const  [documentBase64,setDocumentBase64]=useState("")
+
   const [documentUrl, setDocumentUrl] = useState("");
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -41,13 +52,6 @@ const useChat = () => {
     localStorage.setItem("draft", target.value);
   };
 
-  // {
-  //   userChat: "",
-  //   isOnFocus: false,
-  //   document_upload: null,
-  //   isDragging: false,
-  // }
-
   const onInputFocus = (focused: boolean) => {
     setTextInput((prev) => ({
       ...prev,
@@ -58,13 +62,21 @@ const useChat = () => {
   const handleFile = (incoming: File | null) => {
     if (!incoming) return;
 
-    setTextInput((prev) => ({
-      ...prev,
-      document_upload: incoming,
-    }));
+    const reader = new FileReader();
 
-    const urlExtraction = URL.createObjectURL(incoming);
-    setDocumentUrl(urlExtraction);
+    reader.onload = function (event) {
+      const result = event.target?.result;
+
+      if (typeof result !== "string") return; // ✅ narrows type, handles null/ArrayBuffer
+
+    const base64 = result.split(",")[1];  // for Gemini API
+    const dataUrl = result;               // for UI preview (full string)
+
+    setDocumentBase64(base64);  // send this to Gemini
+    setDocumentUrl(dataUrl);   
+    };
+
+    reader.readAsDataURL(incoming);
   };
 
   const openFilePicker = () => inputRef.current.click();
@@ -98,6 +110,43 @@ const useChat = () => {
 
     handleFile(e.dataTransfer.files[0]);
   };
+
+  // const aiConversation = async () => {
+  //   const contents = [
+  //     { text: "Ask me question based on my uploaded CV" },
+  //     {
+  //       inlineData: {
+  //         mimeType: "application/pdf",
+  //         data: Buffer.from(
+  //           fs.readFileSync(`${textInput.document_upload}`),
+  //         ).toString("base64"),
+  //       },
+  //     },
+  //   ];
+
+    // const interaction = await ai.interactions.create({
+    //   model: "gemini-3-flash-preview",
+    //   input: [
+    //     { type: "user_input", content: [{ type: "text", text: "Hello" }] },
+    //     {
+    //       type: "model_output",
+    //       content: [
+    //         { type: "text", text: "Hi there! How can I help you today?" },
+    //       ],
+    //     },
+    //     {
+    //       type: "user_input",
+    //       content: [{ type: "text", text: "What is the capital of France?" }],
+    //     },
+    //   ],
+    // });
+
+  //   const response = await ai.models.generateContent({
+  //     model: "gemini-3.5-flash",
+  //     contents: contents,
+  //   });
+  //   console.log(response.text);
+  // };
 
   return {
     textInput,
