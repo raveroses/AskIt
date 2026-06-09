@@ -1,57 +1,124 @@
 "use client";
 
-import "dotenv/config";
-import { GoogleGenAI } from "@google/genai";
-import * as fs from "node:fs";
 import { useRef, useState } from "react";
 import useText from "./useText";
 
-// const apiKeyStorage = process.env.API_KEY;
-
-// const ai = new GoogleGenAI({ apiKey: apiKeyStorage });
-// //inputText is the input text
-// console.log("apikey", apiKeyStorage);
 type ChatType = {
   userChat: string;
-  isOnFocus: boolean;
+  // isOnFocus: boolean;
   isDragging: boolean;
   document_upload: File | null;
 };
+type Message = {
+  role: "user" | "model";
+  text: string;
+};
 
 const useChat = () => {
-  const { setInputText } = useText();
+  const { setInputText, inputText } = useText();
   const [textInput, setTextInput] = useState<ChatType>(() => {
     try {
-      const saved = localStorage.getItem("inputdraft");
+      const saved = localStorage.getItem("draft");
       if (saved) return JSON.parse(saved);
     } catch {
       console.log("error");
     }
     return {
       // userChat: "",
-      isOnFocus: false,
+      // isOnFocus: false,
       document_upload: null,
       isDragging: false,
     };
   });
-
-  const  [documentBase64,setDocumentBase64]=useState("")
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      role: "user",
+      text: `
+      You are a professional interviewer.
+      Read my CV and conduct an interview.
+      Ask one question at a time.
+    `,
+    },
+  ]);
+  const [documentBase64, setDocumentBase64] = useState("");
 
   const [documentUrl, setDocumentUrl] = useState("");
 
-  const inputRef = useRef<HTMLInputElement>(null);
-  const handleTextOnchange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const target = e.target;
-    target.style.height = "0px";
-
-    const height = Math.min(target.scrollHeight, 250);
-
-    target.style.height = `${height}px`;
-
-    setInputText(target.value);
-    localStorage.setItem("draft", target.value);
+  const onRemove = () => {
+    setDocumentBase64("");
+    setDocumentUrl("");
   };
 
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleTextOnchange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const target = e.target;
+
+    target.style.height = "0px";
+    const height = Math.min(target.scrollHeight, 250);
+    target.style.height = `${height}px`;
+    setInputText(target.value);
+
+    if (typeof window !== "undefined") {
+      // ✅ SSR safe
+      localStorage.setItem("draft", target.value);
+    }
+  };
+
+  const handleIsValidation = (): boolean => {
+    return !!inputText.trim();
+  };
+
+  const aiConversation = async (updatedMessages: Message[]) => {
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messages: updatedMessages,
+        documentBase64,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("AI request failed", response.status, response.statusText);
+      return;
+    }
+
+    const data = await response.json();
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "model",
+        text: data.result || "",
+      },
+    ]);
+  };
+  console.log(messages);
+
+  const handleSendMessage = async () => {
+    if (!handleIsValidation()) {
+      alert("Please input something");
+      return;
+    }
+
+    const updatedMessages: Message[] = [
+      ...messages,
+      {
+        role: "user",
+        text: inputText,
+      },
+    ];
+
+    setMessages(updatedMessages);
+
+    await aiConversation(updatedMessages);
+
+    setInputText("");
+    localStorage.removeItem("draft");
+  };
   const onInputFocus = (focused: boolean) => {
     setTextInput((prev) => ({
       ...prev,
@@ -62,18 +129,23 @@ const useChat = () => {
   const handleFile = (incoming: File | null) => {
     if (!incoming) return;
 
+    const docType = incoming.type;
+
+    if (docType !== "application/pdf") {
+      alert("only PDF is allowed");
+      return;
+    }
     const reader = new FileReader();
 
     reader.onload = function (event) {
       const result = event.target?.result;
 
-      if (typeof result !== "string") return; // ✅ narrows type, handles null/ArrayBuffer
+      if (typeof result !== "string") return;
+      const base64 = result.split(",")[1];
+      const dataUrl = result;
 
-    const base64 = result.split(",")[1];  // for Gemini API
-    const dataUrl = result;               // for UI preview (full string)
-
-    setDocumentBase64(base64);  // send this to Gemini
-    setDocumentUrl(dataUrl);   
+      setDocumentBase64(base64);
+      setDocumentUrl(dataUrl);
     };
 
     reader.readAsDataURL(incoming);
@@ -81,7 +153,8 @@ const useChat = () => {
 
   const openFilePicker = () => inputRef.current.click();
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    handleFile(e.target.files[0]);
+    handleFile(e.target.files?.[0] ?? null);
+    e.target.value = "";
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -110,46 +183,9 @@ const useChat = () => {
 
     handleFile(e.dataTransfer.files[0]);
   };
-
-  // const aiConversation = async () => {
-  //   const contents = [
-  //     { text: "Ask me question based on my uploaded CV" },
-  //     {
-  //       inlineData: {
-  //         mimeType: "application/pdf",
-  //         data: Buffer.from(
-  //           fs.readFileSync(`${textInput.document_upload}`),
-  //         ).toString("base64"),
-  //       },
-  //     },
-  //   ];
-
-    // const interaction = await ai.interactions.create({
-    //   model: "gemini-3-flash-preview",
-    //   input: [
-    //     { type: "user_input", content: [{ type: "text", text: "Hello" }] },
-    //     {
-    //       type: "model_output",
-    //       content: [
-    //         { type: "text", text: "Hi there! How can I help you today?" },
-    //       ],
-    //     },
-    //     {
-    //       type: "user_input",
-    //       content: [{ type: "text", text: "What is the capital of France?" }],
-    //     },
-    //   ],
-    // });
-
-  //   const response = await ai.models.generateContent({
-  //     model: "gemini-3.5-flash",
-  //     contents: contents,
-  //   });
-  //   console.log(response.text);
-  // };
-
   return {
     textInput,
+    messages,
     handleTextOnchange,
     onInputFocus,
     handleFile,
@@ -160,6 +196,8 @@ const useChat = () => {
     inputRef,
     handleInputChange,
     documentUrl,
+    onRemove,
+    handleSendMessage,
   };
 };
 

@@ -1,10 +1,4 @@
 "use client";
-import { pdfjs } from "react-pdf";
-
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.min.mjs",
-  import.meta.url,
-).toString();
 import {
   AudioLines,
   CircleStop,
@@ -21,7 +15,15 @@ import { useRecorder } from "../../../../zustand/useRecorder";
 import { useEffect, useRef, useState } from "react";
 import useChat from "../../../../zustand/useChat";
 import useText from "../../../../zustand/useText";
-import { Document, Page } from "react-pdf";
+
+import dynamic from "next/dynamic";
+
+const PdfPreview = dynamic(() => import("./PdfPreview"), {
+  ssr: false,
+  loading: () => <></>,
+});
+
+// import { Document, Page } from "react-pdf";
 
 export default function ImageUploading() {
   const { audioUrl, isTranscription, isRecording } = useGlobal();
@@ -43,6 +45,7 @@ export default function ImageUploading() {
   const {
     handleTextOnchange,
     textInput,
+    messages,
     onInputFocus,
     handleInputChange,
     handleDragLeave,
@@ -51,17 +54,17 @@ export default function ImageUploading() {
     handleDrop,
     inputRef,
     documentUrl,
+    onRemove,
+    handleSendMessage,
   } = useChat();
 
   const { inputText, interimTranscript } = useText();
-  console.log(documentUrl);
 
   useEffect(() => {
     if (audioUrl && duration > 0) {
       playBack();
     }
   }, [audioUrl, currentTime, duration, playBack]);
-  const focus = textInput.isOnFocus;
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -82,16 +85,8 @@ export default function ImageUploading() {
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
-  console.log(isTranscription);
-  console.log(isRecording);
-
   return (
     <section className="w-full h-auto flex md:justify-between">
-      {/* {documentUrl ? (
-        <Document file={documentUrl} loading={<></>} noData={<></>}>
-          <Page pageNumber={1} loading={<></>} />
-        </Document>
-      ) : null} */}
       <motion.div
         initial={{
           x: "-200vw",
@@ -210,97 +205,23 @@ export default function ImageUploading() {
           </motion.div>
         </AnimatePresence>
 
-        <ul className="chatarea flex flex-col gap-10 w-full">
-          {/* User Message (right) */}
-          <li
-            className={` flex justify-end items-end ml-auto ${audioUrl ? " bg-[#1e2d45] px-4 py-2 rounded-2xl md:max-w-[40%] " : " w-full md:max-w-[70%] max-w-full bg-blue-600 text-white p-3 rounded-lg"} `}
-          >
-            {audioUrl ? (
-              <div className="flex items-center gap-2 w-full">
-                <audio
-                  ref={audioRef}
-                  src={audioUrl}
-                  onTimeUpdate={() => {
-                    const time = audioRef.current?.currentTime || 0;
-                    const audioDuration =
-                      audioRef.current?.duration || duration;
-                    setCurrentTime(time);
-                    setDuration(audioDuration);
-                    playBack(time, audioDuration);
-                  }}
-                  onLoadedMetadata={() => {
-                    const audioDuration = audioRef.current?.duration || 0;
-                    setDuration(audioDuration);
-                    playBack(0, audioDuration);
-                  }}
-                  onEnded={() => setIsPlaying(false)}
-                />
-                <button
-                  onClick={togglePlay}
-                  className="text-amber-400 shrink-0"
-                >
-                  {isPlaying ? (
-                    <svg
-                      width="28"
-                      height="28"
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                    >
-                      <rect x="6" y="4" width="4" height="16" rx="1" />
-                      <rect x="14" y="4" width="4" height="16" rx="1" />
-                    </svg>
-                  ) : (
-                    <svg
-                      width="28"
-                      height="28"
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                    >
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                  )}
-                </button>
-                <canvas
-                  ref={secondCanvasRef}
-                  width={300}
-                  height={40}
-                  className="flex-1 h-10 block rounded"
-                />
-                <span className="text-xs text-slate-400 shrink-0 font-mono">
-                  {formatTime(currentTime)} / {formatTime(duration)}
-                </span>
+        <ul className="chatarea flex flex-col gap-6 w-full">
+          {messages.map((message, index) => (
+            <li
+              key={`${message.role}-${index}`}
+              className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+            >
+              <div
+                className={`max-w-[70%] p-4 rounded-2xl text-white break-words ${
+                  message.role === "user"
+                    ? "bg-blue-600 text-right"
+                    : "bg-gray-800 text-left"
+                }`}
+              >
+                {message.text}
               </div>
-            ) : (
-              <span>
-                Lorem ipsum dolor sit amet consectetur adipisicing elit.
-                Repudiandae accusamus illo maiores sunt non expedita cum nemo
-                praesentium iusto obcaecati numquam natus, corporis iste
-                voluptate sapiente, velit tempore at eius.
-              </span>
-            )}
-
-            {/* </div> */}
-          </li>
-
-          <li className="flex w-full justify-start items-start gap-3 md:max-w-[70%] max-w-full">
-            {/* <div className="flex items-start gap-3 md:max-w-[70%] max-w-full"> */}
-            <Image
-              alt="ai-image"
-              src="/images/cyber-face.png"
-              width={40}
-              height={40}
-              priority
-              className="rounded-full md:block hidden"
-            />
-
-            <span className="bg-gray-800 text-white p-3 rounded-lg">
-              Lorem ipsum dolor sit amet consectetur adipisicing elit. At sint
-              voluptatem provident reprehenderit quis voluptatum expedita
-              recusandae repudiandae doloremque laborum libero minus est
-              suscipit nesciunt alias ullam, ipsum sequi quas.
-            </span>
-            {/* </div> */}
-          </li>
+            </li>
+          ))}
 
           {textInput?.document_upload?.name && (
             <li>
@@ -327,20 +248,10 @@ export default function ImageUploading() {
 
         <div
           className={`messagesender bg-blue-950 rounded-xl py-3 md:w-[60%] w-full md:h-auto
-         flex  gap-0 fixed md:bottom-5 bottom-2 md:left-[30%] left-0 right-0 px-3  ${focus ? "justify-between items-center" : "flex-col"}`}
+         flex  gap-0 fixed md:bottom-5 bottom-2 md:left-[30%] left-0 right-0 px-3  ${inputText ? "justify-between items-center" : "flex-col"}`}
         >
           {documentUrl ? (
-            <div className="overflow-hidden rounded-lg bg-white w-[150px]">
-              <Document file={documentUrl} loading={<></>} noData={<></>}>
-                <Page
-                  pageNumber={1}
-                  loading={<></>}
-                  width={150}
-                  renderTextLayer={false}
-                  renderAnnotationLayer={false}
-                />
-              </Document>
-            </div>
+            <PdfPreview documentUrl={documentUrl} onRemove={onRemove} />
           ) : (
             <textarea
               // value={inputText}
@@ -353,7 +264,7 @@ export default function ImageUploading() {
             ></textarea>
           )}
 
-          <div className={`${focus ? "hidden" : "block"}`}>
+          <div className={`${inputText ? "hidden" : "block"}`}>
             <canvas
               ref={canvasRef}
               width={800}
@@ -408,7 +319,8 @@ export default function ImageUploading() {
             </div>
           </div>
           <div
-            className={`rounded-full bg-gray-500 p-2 cursor-pointer ${focus ? "block" : "hidden"}`}
+            className={`rounded-full bg-gray-500 p-2 cursor-pointer ${inputText || interimTranscript ? "block" : "hidden"}`}
+            onClick={handleSendMessage}
           >
             <SendHorizontal />
           </div>
