@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import useGlobal from "./useGlobal";
 import { useWaveform } from "./useWaveform";
 import useText from "./useText";
+import useChat from "./useChat";
 
 export const useRecorder = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -18,10 +19,14 @@ export const useRecorder = () => {
   const {
     setAudioUrl,
     // setTranscription,
+    setIsRecordingOn,
+    clearIsRecordingOn,
+    clearAudioUrl,
     startRecording,
     stopRecording,
     startTranscription,
     stopTranscription,
+    setIsAudioBlob,
   } = useGlobal();
 
   const { setInputText, setInterimTranscript } = useText();
@@ -37,6 +42,7 @@ export const useRecorder = () => {
     playBack,
   } = useWaveform();
 
+  const { handleSendMessage } = useChat();
   // const SpeechRecognition = new SpeechRecognition()
   const getSpeechRecognition = () => {
     if (typeof window === "undefined") return null;
@@ -88,25 +94,6 @@ export const useRecorder = () => {
       }
     };
 
-    // recognition.onresult = (event) => {
-    //   let finalChunk = "";
-
-    //   for (let i = event.resultIndex; i < event.results.length; i++) {
-    //     if (event.results[i].isFinal) {
-    //       finalChunk += event.results[i][0].transcript + " ";
-    //     }
-    //   }
-
-    //   if (finalChunk) {
-    //     setInputText((prev) => {
-    //       const updated = prev + finalChunk;
-
-    //       localStorage.setItem("draft", updated);
-
-    //       return updated;
-    //     });
-    //   }
-    // };
     recognition.start();
 
     startTranscription();
@@ -118,6 +105,7 @@ export const useRecorder = () => {
 
   const startVoiceNote = async () => {
     chunksRef.current = [];
+    clearAudioUrl();
 
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
@@ -131,12 +119,18 @@ export const useRecorder = () => {
 
     recorder.onstop = () => {
       const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-      const url = URL.createObjectURL(blob);
-      setAudioUrl(url);
+      // const url = URL.createObjectURL(blob);
+
+      // setAudioUrl(url);
+      setIsAudioBlob(blob);
+      console.log("real blob checker", blob);
+
+      void handleSendMessage(blob);
     };
 
     recorder.start();
     startRecording();
+    setIsRecordingOn();
 
     await new Promise((resolve) => requestAnimationFrame(resolve));
 
@@ -163,6 +157,7 @@ export const useRecorder = () => {
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
     stopRecording();
+    clearIsRecordingOn();
     stop();
   };
 

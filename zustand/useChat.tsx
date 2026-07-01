@@ -1,7 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import useText from "./useText";
+import useGlobal from "./useGlobal";
 
 type ChatType = {
   userChat: string;
@@ -12,10 +13,16 @@ type ChatType = {
 type Message = {
   role: "user" | "model";
   text: string;
-};
+  audioBase64?: string;
+  documentBase64?: string;
 
+  isAudioUrl?: string;
+  documentPdfUrl?: string;
+};
 const useChat = () => {
-  const { setInputText, inputText } = useText();
+  const { setInputText, inputText, setInterimTranscript } = useText();
+  const { isAudioBlob, isRecordingOn, audioUrl, clearAudioUrl } = useGlobal();
+
   const [textInput, setTextInput] = useState<ChatType>(() => {
     try {
       const saved = localStorage.getItem("draft");
@@ -30,23 +37,54 @@ const useChat = () => {
       isDragging: false,
     };
   });
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "user",
-      text: `
-      You are a professional interviewer.
-      Read my CV and conduct an interview.
-      Ask one question at a time.
-    `,
-    },
-  ]);
-  const [documentBase64, setDocumentBase64] = useState("");
+  const [messages, setMessages] = useState<Message[]>(() => {
+    try {
+      const getMessage = localStorage.getItem("chatDraft");
+      if (!getMessage) {
+        return [];
+      }
 
-  const [documentUrl, setDocumentUrl] = useState("");
+      const parsed = JSON.parse(getMessage);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      console.log(e.message);
+      return [];
+    }
+  });
+
+  const [document, setDocument] = useState(() => {
+    try {
+      const documentgetter = localStorage.getItem("docs");
+      if (!documentgetter) {
+        return {
+          base64: "",
+          url: "",
+        };
+      }
+
+      const parsed = JSON.parse(documentgetter);
+      return parsed && typeof parsed === "object"
+        ? parsed
+        : {
+            base64: "",
+            url: "",
+          };
+    } catch (error) {
+      console.log(error.message);
+      return {
+        base64: "",
+        url: "",
+      };
+    }
+  });
 
   const onRemove = () => {
-    setDocumentBase64("");
-    setDocumentUrl("");
+    setDocument({
+      base64: "",
+      url: "",
+    });
+
+    localStorage.removeItem("docs");
   };
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -65,8 +103,32 @@ const useChat = () => {
     }
   };
 
-  const handleIsValidation = (): boolean => {
-    return !!inputText.trim();
+  const handleIsValidation = (blob?: Blob): boolean => {
+    const hasAudioBlob = blob instanceof Blob || isAudioBlob instanceof Blob;
+    console.log(
+      "isEithertrue",
+      !!inputText.trim() || !!document.url || !!isRecordingOn || hasAudioBlob,
+    );
+
+    return (
+      !!inputText.trim() || !!document.url || !!isRecordingOn || hasAudioBlob
+    );
+  };
+
+  const blobToBase64 = (blob: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onloadend = () => {
+        const result = reader.result as string;
+
+        resolve(result.split(",")[1]);
+      };
+
+      reader.onerror = reject;
+
+      reader.readAsDataURL(blob);
+    });
   };
 
   const aiConversation = async (updatedMessages: Message[]) => {
@@ -77,48 +139,71 @@ const useChat = () => {
       },
       body: JSON.stringify({
         messages: updatedMessages,
-        documentBase64,
       }),
     });
 
     if (!response.ok) {
-      console.error("AI request failed", response.status, response.statusText);
-      return;
+      throw new Error("AI request failed");
     }
 
-    const data = await response.json();
-
-    setMessages((prev) => [
-      ...prev,
-      {
-        role: "model",
-        text: data.result || "",
-      },
-    ]);
+    return response.json();
   };
-  console.log(messages);
 
-  const handleSendMessage = async () => {
-    if (!handleIsValidation()) {
+  const handleSendMessage = async (audioBlob?: Blob) => {
+    if (!handleIsValidation(audioBlob)) {
       alert("Please input something");
       return;
     }
+
+    const blobToSend = audioBlob ?? isAudioBlob;
+    const hasAudioBlob = blobToSend instanceof Blob;
+    const audioUrls = audioBlob ? URL.createObjectURL(audioBlob) : null;
+    console.log("audioUrlsss", audioUrls);
 
     const updatedMessages: Message[] = [
       ...messages,
       {
         role: "user",
-        text: inputText,
+        text: inputText.trim(),
+        audioBase64: hasAudioBlob ? await blobToBase64(blobToSend) : undefined,
+        documentBase64: document.base64 || undefined,
+
+        isAudioUrl: audioUrls,
+        documentPdfUrl: document.url,
       },
     ];
 
+    console.log(
+      JSON.stringify(updatedMessages[updatedMessages.length - 1], null, 2),
+    );
+
     setMessages(updatedMessages);
 
-    await aiConversation(updatedMessages);
+    try {
+      const data = await aiConversation(updatedMessages);
 
-    setInputText("");
-    localStorage.removeItem("draft");
+      const finalMessages = [
+        ...updatedMessages,
+        {
+          role: "model" as const,
+          text: data.result,
+        },
+      ];
+
+      setMessages(finalMessages);
+      setInputText("");
+      setInterimTranscript("");
+      setDocument({
+        url: "",
+      });
+      clearAudioUrl();
+      localStorage.removeItem("draft");
+      localStorage.setItem("chatDraft", JSON.stringify(finalMessages));
+    } catch (error) {
+      console.error("handleSendMessage failed", error);
+    }
   };
+
   const onInputFocus = (focused: boolean) => {
     setTextInput((prev) => ({
       ...prev,
@@ -143,9 +228,12 @@ const useChat = () => {
       if (typeof result !== "string") return;
       const base64 = result.split(",")[1];
       const dataUrl = result;
+      console.log(base64);
 
-      setDocumentBase64(base64);
-      setDocumentUrl(dataUrl);
+      setDocument({
+        base64: base64,
+        url: dataUrl,
+      });
     };
 
     reader.readAsDataURL(incoming);
@@ -183,6 +271,11 @@ const useChat = () => {
 
     handleFile(e.dataTransfer.files[0]);
   };
+
+  console.log("Document", document);
+  console.log("message", messages);
+  console.log("audiourl", audioUrl);
+
   return {
     textInput,
     messages,
@@ -195,7 +288,7 @@ const useChat = () => {
     handleDrop,
     inputRef,
     handleInputChange,
-    documentUrl,
+    document,
     onRemove,
     handleSendMessage,
   };

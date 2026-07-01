@@ -53,7 +53,7 @@ export default function ImageUploading() {
     openFilePicker,
     handleDrop,
     inputRef,
-    documentUrl,
+    document,
     onRemove,
     handleSendMessage,
   } = useChat();
@@ -205,56 +205,119 @@ export default function ImageUploading() {
           </motion.div>
         </AnimatePresence>
 
-        <ul className="chatarea flex flex-col gap-6 w-full">
+        <ul className="chatarea flex flex-col gap-6 w-full mb-20">
           {messages.map((message, index) => (
             <li
               key={`${message.role}-${index}`}
               className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
             >
+              {message.isAudioUrl && (
+                <div className="flex items-center gap-2  justify-end">
+                  <audio
+                    ref={audioRef}
+                    src={message.isAudioUrl}
+                    onTimeUpdate={() => {
+                      const time = audioRef.current?.currentTime || 0;
+                      const audioDuration =
+                        audioRef.current?.duration || duration;
+
+                      setCurrentTime(time);
+                      setDuration(audioDuration);
+                      playBack(time, audioDuration);
+                    }}
+                    onLoadedMetadata={() => {
+                      const audioDuration = audioRef.current?.duration || 0;
+                      setDuration(audioDuration);
+                      playBack(0, audioDuration);
+                    }}
+                    onEnded={() => setIsPlaying(false)}
+                  />
+
+                  <button
+                    onClick={togglePlay}
+                    className="text-amber-400 shrink-0"
+                  >
+                    {isPlaying ? (
+                      <svg
+                        width="28"
+                        height="28"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                      >
+                        <rect x="6" y="4" width="4" height="16" rx="1" />
+                        <rect x="14" y="4" width="4" height="16" rx="1" />
+                      </svg>
+                    ) : (
+                      <svg
+                        width="28"
+                        height="28"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                      >
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    )}
+                  </button>
+
+                  <canvas
+                    ref={secondCanvasRef}
+                    width={300}
+                    height={40}
+                    className="flex-1 h-10 block rounded"
+                  />
+
+                  <span className="text-xs text-slate-400 shrink-0 font-mono">
+                    {formatTime(currentTime)} / {formatTime(duration)}
+                  </span>
+                </div>
+              )}
+
               <div
-                className={`max-w-[70%] p-4 rounded-2xl text-white break-words ${
+                className={`max-w-[70%] p-4 rounded-2xl text-white wrap-break-words ${
                   message.role === "user"
                     ? "bg-blue-600 text-right"
                     : "bg-gray-800 text-left"
                 }`}
               >
-                {message.text}
+                {message.text && <div>{message.text}</div>}
+                {message.documentPdfUrl && (
+                  <div
+                    className={`flex items-center gap-3 rounded-xl p-4 w-70 cursor-pointer transition ${
+                      message.role === "user"
+                        ? "bg-blue-700 hover:bg-blue-600"
+                        : "bg-white/10 hover:bg-white/20"
+                    }`}
+                    onClick={() =>
+                      window.open(message.documentPdfUrl, "_blank")
+                    }
+                  >
+                    <div className="bg-amber-500 rounded-lg p-3 text-white text-2xl">
+                      📄
+                    </div>
+                    <div className="flex flex-col">
+                      <p className="text-white font-semibold text-sm truncate w-40">
+                        {textInput?.document_upload?.name || "document.pdf"}
+                      </p>
+                      <p className="text-white/50 text-xs">PDF Document</p>
+                    </div>
+
+                    {/* Arrow */}
+                    <div className="ml-auto text-white/50 text-lg">›</div>
+                  </div>
+                )}
               </div>
             </li>
           ))}
-
-          {textInput?.document_upload?.name && (
-            <li>
-              <div
-                className="flex items-center gap-3 bg-white/10 rounded-xl p-4 w-70 cursor-pointer hover:bg-white/20 transition"
-                onClick={() => window.open(documentUrl, "_blank")}
-              >
-                <div className="bg-amber-500 rounded-lg p-3 text-white text-2xl">
-                  📄
-                </div>
-                <div className="flex flex-col">
-                  <p className="text-white font-semibold text-sm truncate w-40">
-                    {textInput?.document_upload?.name || "document.pdf"}
-                  </p>
-                  <p className="text-white/50 text-xs">PDF Document</p>
-                </div>
-
-                {/* Arrow */}
-                <div className="ml-auto text-white/50 text-lg">›</div>
-              </div>
-            </li>
-          )}
         </ul>
 
         <div
           className={`messagesender bg-blue-950 rounded-xl py-3 md:w-[60%] w-full md:h-auto
          flex  gap-0 fixed md:bottom-5 bottom-2 md:left-[30%] left-0 right-0 px-3  ${inputText ? "justify-between items-center" : "flex-col"}`}
         >
-          {documentUrl ? (
-            <PdfPreview documentUrl={documentUrl} onRemove={onRemove} />
+          {document.url ? (
+            <PdfPreview documentUrl={document.url} onRemove={onRemove} />
           ) : (
             <textarea
-              // value={inputText}
               value={inputText + interimTranscript}
               className="border-none outline-none resize-none w-full h-auto "
               placeholder="Ask me anything ..."
@@ -301,6 +364,7 @@ export default function ImageUploading() {
                   </>
                 )}
 
+                {/* this for voice note */}
                 {!isRecording ? (
                   <div className="record rounded-full bg-logo-color p-2 cursor-pointer">
                     <AudioLines onClick={startVoiceNote} />
@@ -310,22 +374,85 @@ export default function ImageUploading() {
                     <SendHorizontal onClick={stopVoiceNote} />
                   </div>
                 )}
+
+                {/* ending of sending voice note */}
+                {/* This is for the default one  and also work for pdf*/}
                 {!isRecording && (
                   <div className="rounded-full bg-gray-500 p-2 cursor-pointer">
-                    <SendHorizontal />
+                    <SendHorizontal onClick={handleSendMessage} />
                   </div>
                 )}
+                {/* ending of the default sending */}
               </div>
             </div>
           </div>
+          {/* This is for textarea focus */}
           <div
             className={`rounded-full bg-gray-500 p-2 cursor-pointer ${inputText || interimTranscript ? "block" : "hidden"}`}
             onClick={handleSendMessage}
           >
             <SendHorizontal />
           </div>
+          {/* ending of textarea focus */}
         </div>
       </div>
     </section>
   );
+}
+
+{
+  /* {audioUrl ? (
+              <div className="flex items-center gap-2 w-full">
+                <audio
+                  ref={audioRef}
+                  src={audioUrl}
+                  onTimeUpdate={() => {
+                    const time = audioRef.current?.currentTime || 0;
+                    const audioDuration =
+                      audioRef.current?.duration || duration;
+                    setCurrentTime(time);
+                    setDuration(audioDuration);
+                    playBack(time, audioDuration);
+                  }}
+                  onLoadedMetadata={() => {
+                    const audioDuration = audioRef.current?.duration || 0;
+                    setDuration(audioDuration);
+                    playBack(0, audioDuration);
+                  }}
+                  onEnded={() => setIsPlaying(false)}
+                />
+                <button
+                  onClick={togglePlay}
+                  className="text-amber-400 shrink-0"
+                >
+                  {isPlaying ? (
+                    <svg
+                      width="28"
+                      height="28"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <rect x="6" y="4" width="4" height="16" rx="1" />
+                      <rect x="14" y="4" width="4" height="16" rx="1" />
+                    </svg>
+                  ) : (
+                    <svg
+                      width="28"
+                      height="28"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  )}
+                </button>
+                <canvas
+                  ref={secondCanvasRef}
+                  width={300}
+                  height={40}
+                  className="flex-1 h-10 block rounded"
+                />
+                <span className="text-xs text-slate-400 shrink-0 font-mono">
+                  {formatTime(currentTime)} / {formatTime(duration)}
+                </span> */
 }
