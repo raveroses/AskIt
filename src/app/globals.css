@@ -4,6 +4,7 @@
   --background: #ffffff;
   --foreground: #171717;
   --logo-color: #ffc107;
+  /* --defaultpage:#ffffff; */
   font-family: "Red Rose", serif;
 }
 
@@ -11,19 +12,20 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-logo-color: var(--logo-color);
+  /* --color-defaultpage: var(--defaultpage) */
   --font-sans: "Red Rose", serif;
   --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #ededed;
+    --foreground:  #0a0a0a;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  /* background: var(--background); */
+  color: var(--background);
   font-family: "Red Rose", serif;
 }

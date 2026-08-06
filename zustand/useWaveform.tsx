@@ -75,6 +75,16 @@ export const useWaveform = () => {
 
   const setup = useCallback(
     async (stream?: MediaStream) => {
+      // Clean up any previous session first (safe even if nothing to clean up)
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
+      if (audioCtxRef.current && audioCtxRef.current.state !== "closed") {
+        await audioCtxRef.current.close();
+      }
+      audioCtxRef.current = null;
+
       const localStream =
         stream ?? (await navigator.mediaDevices.getUserMedia({ audio: true }));
       streamRef.current = localStream;
@@ -112,12 +122,9 @@ export const useWaveform = () => {
       const barWidth = 3;
       const gap = 2;
 
-      // This shows the maximum bar we want visible
       const maxVisibleBars = Math.floor(canvas.width / (barWidth + gap));
-      // This clear the whole rectangles
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // This is showing every sound in the history
       const history = historyRef.current;
 
       const sampledBars: number[] = [];
@@ -144,13 +151,26 @@ export const useWaveform = () => {
     [currentTime, duration],
   );
 
+  // Snapshot the recorded loudness history — call this right when
+  // recording stops, so it can be saved alongside the audio Blob.
+  const getHistory = useCallback(() => {
+    return [...historyRef.current];
+  }, []);
+
   const stop = useCallback(() => {
     if (rafIdRef.current !== null) {
       cancelAnimationFrame(rafIdRef.current);
       rafIdRef.current = null;
     }
-    audioCtxRef.current?.close();
+
+    // Guard against closing an already-closed AudioContext
+    if (audioCtxRef.current && audioCtxRef.current.state !== "closed") {
+      audioCtxRef.current.close();
+    }
+    audioCtxRef.current = null;
+
     streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
   }, []);
 
   return {
@@ -158,6 +178,7 @@ export const useWaveform = () => {
     secondCanvasRef,
     setup,
     stop,
+    getHistory,
     currentTime,
     setCurrentTime,
     duration,

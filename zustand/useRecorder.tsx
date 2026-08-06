@@ -14,11 +14,8 @@ export const useRecorder = () => {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [fullTime, setFullTime] = useState<string>("");
-  // const [finalTranscript, setFinalTranscript] = useState("");
-  // const [interimTranscript, setInterimTranscript] = useState("");
+
   const {
-    setAudioUrl,
-    // setTranscription,
     setIsRecordingOn,
     clearIsRecordingOn,
     clearAudioUrl,
@@ -33,6 +30,7 @@ export const useRecorder = () => {
   const {
     setup,
     stop,
+    getHistory, // 👈 pulled in from useWaveform
     canvasRef,
     secondCanvasRef,
     currentTime,
@@ -43,7 +41,7 @@ export const useRecorder = () => {
   } = useWaveform();
 
   const { handleSendMessage } = useChat();
-  // const SpeechRecognition = new SpeechRecognition()
+
   const getSpeechRecognition = () => {
     if (typeof window === "undefined") return null;
     return window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -51,13 +49,9 @@ export const useRecorder = () => {
 
   const initSpeechRecognition = async () => {
     const SpeechRecognition = getSpeechRecognition();
-
     if (!SpeechRecognition) return;
 
     const recognition = new SpeechRecognition();
-
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
     recognitionRef.current = recognition;
 
     recognition.continuous = true;
@@ -69,7 +63,6 @@ export const useRecorder = () => {
 
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript;
-
         if (event.results[i].isFinal) {
           finalChunk += transcript + " ";
         } else {
@@ -78,38 +71,25 @@ export const useRecorder = () => {
       }
 
       if (finalChunk) {
-        setInputText((prev) => {
-          const updated = prev + finalChunk;
-
-          localStorage.setItem("draft", updated);
-
-          return updated;
-        });
+        setInputText((prev) => prev + finalChunk);
       }
-
       setInterimTranscript(interim);
-
-      if (typeof window !== "undefined") {
-        localStorage.setItem("draft", interim);
-      }
     };
 
     recognition.start();
-
     startTranscription();
-
-    await new Promise((resolve) => requestAnimationFrame(resolve));
-
-    await setup(stream);
   };
 
   const startVoiceNote = async () => {
+    // Guard against double-start (e.g. duplicate onClick handlers)
+    if (mediaRecorderRef.current?.state === "recording") return;
+
     chunksRef.current = [];
     clearAudioUrl();
 
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
     streamRef.current = stream;
+
     const recorder = new MediaRecorder(stream);
     mediaRecorderRef.current = recorder;
 
@@ -119,32 +99,26 @@ export const useRecorder = () => {
 
     recorder.onstop = () => {
       const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-      // const url = URL.createObjectURL(blob);
 
-      // setAudioUrl(url);
+      // Snapshot the loudness history NOW, before it's lost/reset
+      const waveform = getHistory();
+
       setIsAudioBlob(blob);
-      console.log("real blob checker", blob);
-
-      void handleSendMessage(blob);
+      void handleSendMessage(blob, waveform); // 👈 pass waveform through
     };
 
     recorder.start();
     startRecording();
     setIsRecordingOn();
 
-    await new Promise((resolve) => requestAnimationFrame(resolve));
-
     await setup(stream);
 
     startTimeRef.current = Date.now();
-
     intervalRef.current = setInterval(() => {
       const elapse = Date.now() - startTimeRef.current;
-
       const minutes = Math.floor(elapse / 60000);
       const seconds = Math.floor((elapse % 60000) / 1000);
-      const formattedSeconds = seconds.toString().padStart(2, "0");
-      setFullTime(`${minutes}:${formattedSeconds}`);
+      setFullTime(`${minutes}:${seconds.toString().padStart(2, "0")}`);
     }, 1000);
   };
 
@@ -164,7 +138,6 @@ export const useRecorder = () => {
   const stopInitSpeechRecognition = () => {
     recognitionRef.current?.stop();
     stopTranscription();
-    stop();
   };
 
   return {

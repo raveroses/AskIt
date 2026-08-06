@@ -166,7 +166,7 @@ export default function Features() {
               alt={`${howItWorksContent[numberHowItWorksClick].heading}-image`}
               width={400}
               height={50}
-              className="absolute top-11 left-41.5 object-cover object-top h-55.75 w-[360.8px] rotate-3 rounded-tl"
+              className="absolute top-11 left-41.5 object-cover object-top h-55.75 w-[360.8px] rotate-3 rounded"
               priority
               initial={{
                 opacity: 1,
@@ -202,10 +202,9 @@ export default function Features() {
             return (
               <motion.div
                 key={index}
-                className={`${
-                  numberHowItWorksClick === index &&
+                className={`${numberHowItWorksClick === index &&
                   "border-l-3 border-amber-500"
-                } pl-5 flex gap-5 items-center cursor-pointer py-5`}
+                  } pl-5 flex gap-5 items-center cursor-pointer py-5`}
                 onClick={() => handleNumberHowItWorksClick(index)}
                 initial={{
                   backgroundColor: "rgba(0,0,0,0)",
@@ -249,11 +248,10 @@ export default function Features() {
                   scale: 1.02,
                 }}
                 key={index}
-                className={`${
-                  findBackground
-                    ? "bg-no-repeat bg-cover shadow-xl border border-foreground text-foreground"
-                    : "bg-foreground text-background"
-                } md:w-150 w-full h-100 rounded-2xl flex flex-col items-center justify-center gap-5 px-5 text-center cursor-pointer`}
+                className={`${findBackground
+                  ? "bg-no-repeat bg-cover shadow-xl border border-foreground text-foreground"
+                  : "bg-foreground text-background"
+                  } md:w-150 w-full h-100 rounded-2xl flex flex-col items-center justify-center gap-5 px-5 text-center cursor-pointer`}
                 style={{
                   backgroundImage: findBackground
                     ? "url(/images/unsplash.jpg)"
@@ -261,19 +259,19 @@ export default function Features() {
                 }}
               >
                 <div
-                  className={`${findBackground ? "bg-gray-600" : "bg-logo-color"} p-5 rounded-full`}
+                  className={`${findBackground ? "bg-gray-200" : "bg-logo-color"} p-5 rounded-full`}
                 >
                   <Icon className="text-2xl font-bold" />
                 </div>
                 <h1
-                  className={`${findBackground ? "text-foreground" : "text-logo-color"} text-2xl font-bold`}
+                  className={`${findBackground ? "text-background" : "text-logo-color"} text-2xl font-bold`}
                 >
                   {feature.heading}
                 </h1>
-                <h3 className="text-md font-semibold">
+                <h3 className={`text-md font-semibold ${findBackground ? "text-background" : "text-logo-color"}`}>
                   {feature.secondHeading}
                 </h3>
-                <p className="text-sm font-medium">{feature.thirdHeading}</p>
+                <p className={`text-sm font-medium  ${findBackground ? "text-background" : "text-logo-color"}`}>{feature.thirdHeading}</p>
               </motion.div>
             );
           })}
@@ -333,12 +331,12 @@ export default function Features() {
 
           <div className="flex md:flex-row flex-col items-center md:gap-10 gap-5 justify-center">
             <Link href={"#"}>
-              <button className="bg-background p-3 rounded w-50 cursor-pointer text-sm md:text-md">
+              <button className="bg-background p-3 rounded w-50 cursor-pointer text-sm md:text-md text-foreground">
                 Start Interview
               </button>
             </Link>
             <Link href={"#"}>
-              <button className="bg-background p-3 rounded w-50  cursor-pointer text-sm md:text-md">
+              <button className="bg-background p-3 rounded w-50  cursor-pointer text-sm md:text-md text-foreground">
                 Upload CV
               </button>
             </Link>

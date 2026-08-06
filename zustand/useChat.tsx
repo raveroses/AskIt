@@ -3,87 +3,81 @@
 import { useEffect, useRef, useState } from "react";
 import useText from "./useText";
 import useGlobal from "./useGlobal";
+import useChatStore from "./useChatStore";
 
 type ChatType = {
-  userChat: string;
-  // isOnFocus: boolean;
+  // userChat: string;
+  isOnFocus: boolean;
   isDragging: boolean;
   document_upload: File | null;
 };
-type Message = {
+
+type ChatTurn = {
   role: "user" | "model";
   text: string;
   audioBase64?: string;
   documentBase64?: string;
-
-  isAudioUrl?: string;
+  isAudioUrl?: string | null;
   documentPdfUrl?: string;
+  waveform?: number[]; // 👈 add this
 };
+
+type Chat = {
+  chatId: number;
+  chatTitle: string;
+  perChat: ChatTurn[];
+};
+
 const useChat = () => {
   const { setInputText, inputText, setInterimTranscript } = useText();
-  const { isAudioBlob, isRecordingOn, audioUrl, clearAudioUrl } = useGlobal();
+  const { isAudioBlob, isRecordingOn, clearAudioUrl } = useGlobal();
+  const { chats, setChats, currentChatId, setCurrentChatId } = useChatStore();
 
-  const [textInput, setTextInput] = useState<ChatType>(() => {
-    try {
-      const saved = localStorage.getItem("draft");
-      if (saved) return JSON.parse(saved);
-    } catch {
-      console.log("error");
-    }
-    return {
-      // userChat: "",
-      // isOnFocus: false,
-      document_upload: null,
-      isDragging: false,
-    };
-  });
-  const [messages, setMessages] = useState<Message[]>(() => {
-    try {
-      const getMessage = localStorage.getItem("chatDraft");
-      if (!getMessage) {
-        return [];
-      }
+  // const [textInput, setTextInput] = useState<ChatType>(() => {
+  //   try {
+  //     const saved = localStorage.getItem("draft");
+  //     if (saved) return JSON.parse(saved);
+  //   } catch {
+  //     console.log("error");
+  //   }
+  //   return {
+  //     isOnFocus: false,
+  //     document_upload: null,
+  //     isDragging: false,
+  //   };
+  // });
 
-      const parsed = JSON.parse(getMessage);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (e) {
-      console.log(e.message);
-      return [];
-    }
+  const [textInput, setTextInput] = useState<ChatType>({
+    isOnFocus: false,
+    document_upload: null,
+    isDragging: false
   });
 
+  useEffect(() => {
+    const saved = localStorage.getItem("draft");
+
+    if (saved) {
+      setTextInput(JSON.parse(saved));
+    }
+  }, []);
   const [document, setDocument] = useState(() => {
     try {
       const documentgetter = localStorage.getItem("docs");
       if (!documentgetter) {
-        return {
-          base64: "",
-          url: "",
-        };
+        return { base64: "", url: "" };
       }
-
       const parsed = JSON.parse(documentgetter);
       return parsed && typeof parsed === "object"
         ? parsed
-        : {
-            base64: "",
-            url: "",
-          };
+        : { base64: "", url: "" };
     } catch (error) {
-      console.log(error.message);
-      return {
-        base64: "",
-        url: "",
-      };
+      console.log(error);
+      return { base64: "", url: "" };
     }
   });
 
   const onRemove = () => {
-    setDocument({
-      base64: "",
-      url: "",
-    });
-
+    setDocument({ base64: "", url: "" });
     localStorage.removeItem("docs");
   };
 
@@ -91,25 +85,18 @@ const useChat = () => {
 
   const handleTextOnchange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const target = e.target;
-
     target.style.height = "0px";
     const height = Math.min(target.scrollHeight, 250);
     target.style.height = `${height}px`;
     setInputText(target.value);
 
     if (typeof window !== "undefined") {
-      // ✅ SSR safe
       localStorage.setItem("draft", target.value);
     }
   };
 
   const handleIsValidation = (blob?: Blob): boolean => {
     const hasAudioBlob = blob instanceof Blob || isAudioBlob instanceof Blob;
-    console.log(
-      "isEithertrue",
-      !!inputText.trim() || !!document.url || !!isRecordingOn || hasAudioBlob,
-    );
-
     return (
       !!inputText.trim() || !!document.url || !!isRecordingOn || hasAudioBlob
     );
@@ -118,27 +105,25 @@ const useChat = () => {
   const blobToBase64 = (blob: Blob): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-
       reader.onloadend = () => {
         const result = reader.result as string;
-
         resolve(result.split(",")[1]);
       };
-
       reader.onerror = reject;
-
       reader.readAsDataURL(blob);
     });
   };
 
-  const aiConversation = async (updatedMessages: Message[]) => {
+  // Backend only needs the array of turns (text/audio/document per message),
+  // not the whole chat object (chatId/chatTitle are frontend-only concerns).
+  const aiConversation = async (perChat: ChatTurn[]) => {
     const response = await fetch("/api/chat", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        messages: updatedMessages,
+        messages: perChat,
       }),
     });
 
@@ -149,57 +134,105 @@ const useChat = () => {
     return response.json();
   };
 
-  const handleSendMessage = async (audioBlob?: Blob) => {
+  // Returns the newly created chat so callers can use it immediately,
+  // instead of relying on state that hasn't updated yet.
+  const createNewChat = (): Chat => {
+    // If the current chat exists and has no messages yet, just reuse it
+    const existingEmptyChat = chats.find(
+      (chat) => chat.chatId === currentChatId && chat.perChat.length === 0
+    );
+
+    if (existingEmptyChat) {
+      return existingEmptyChat;
+    }
+
+    const chat: Chat = {
+      chatId: Date.now(),
+      chatTitle: "",
+      perChat: [],
+    };
+
+    setCurrentChatId(chat.chatId);
+    setChats((prev) => [...prev, chat]);
+
+    return chat;
+  };
+
+  const handleSendMessage = async (audioBlob?: Blob, waveform?: number[]) => {
     if (!handleIsValidation(audioBlob)) {
       alert("Please input something");
       return;
     }
 
+    const currentChat =
+      chats.find((chat) => chat.chatId === currentChatId) ?? createNewChat();
+
     const blobToSend = audioBlob ?? isAudioBlob;
     const hasAudioBlob = blobToSend instanceof Blob;
     const audioUrls = audioBlob ? URL.createObjectURL(audioBlob) : null;
-    console.log("audioUrlsss", audioUrls);
 
-    const updatedMessages: Message[] = [
-      ...messages,
-      {
-        role: "user",
-        text: inputText.trim(),
-        audioBase64: hasAudioBlob ? await blobToBase64(blobToSend) : undefined,
-        documentBase64: document.base64 || undefined,
+    if (!navigator.onLine) {
+      alert("You're offline. Please check your internet connection.");
+      return;
+    }
 
-        isAudioUrl: audioUrls,
-        documentPdfUrl: document.url,
-      },
-    ];
+    const userMessage: ChatTurn = {
+      role: "user",
+      text: inputText,
+      audioBase64: hasAudioBlob ? await blobToBase64(blobToSend) : undefined,
+      documentBase64: document.base64 || undefined,
+      isAudioUrl: audioUrls,
+      documentPdfUrl: document.url,
+      waveform,
+    };
 
-    console.log(
-      JSON.stringify(updatedMessages[updatedMessages.length - 1], null, 2),
+    const updatedConversation = {
+      ...currentChat,
+      chatTitle: currentChat.chatTitle || inputText.slice(0, 20),
+      perChat: [...currentChat.perChat, userMessage],
+    };
+
+    setChats((prev) =>
+      prev.map((chat) =>
+        chat.chatId === currentChat.chatId ? updatedConversation : chat // ✅ use currentChat.chatId, not the stale currentChatId
+      )
     );
 
-    setMessages(updatedMessages);
-
     try {
-      const data = await aiConversation(updatedMessages);
+      const data = await aiConversation(updatedConversation.perChat);
 
-      const finalMessages = [
-        ...updatedMessages,
-        {
-          role: "model" as const,
-          text: data.result,
-        },
-      ];
+      const aiMessage: ChatTurn = { role: "model", text: data.result };
 
-      setMessages(finalMessages);
+      // const checkAudioIfComesBeforeTitle = userMessage.audioBase64 && !updatedConversation.chatTitle
+      const shouldGenerateTitle = !currentChat.chatTitle && !inputText.trim() && hasAudioBlob;
+
+
+      setChats((prev) =>
+        prev.map((chat) =>
+          chat.chatId === currentChat.chatId // ✅ same fix here
+            ? {
+              ...chat,
+              // chatTitle: checkAudioIfComesBeforeTitle ? aiMessage.text.slice(0, 20) : "",
+              chatTitle: shouldGenerateTitle
+                ? aiMessage.text.slice(0, 20)
+                : chat.chatTitle,
+              perChat: [...chat.perChat, aiMessage]
+            }
+            : chat
+        )
+      );
+
       setInputText("");
       setInterimTranscript("");
-      setDocument({
-        url: "",
-      });
+      setDocument({ url: "" });
       clearAudioUrl();
       localStorage.removeItem("draft");
-      localStorage.setItem("chatDraft", JSON.stringify(finalMessages));
     } catch (error) {
+      if (error instanceof TypeError) {
+        alert("Network error — please check your internet connection.");
+      } else {
+        alert("Something went wrong. Please try again.");
+      }
       console.error("handleSendMessage failed", error);
     }
   };
@@ -224,11 +257,9 @@ const useChat = () => {
 
     reader.onload = function (event) {
       const result = event.target?.result;
-
       if (typeof result !== "string") return;
       const base64 = result.split(",")[1];
       const dataUrl = result;
-      console.log(base64);
 
       setDocument({
         base64: base64,
@@ -239,7 +270,8 @@ const useChat = () => {
     reader.readAsDataURL(incoming);
   };
 
-  const openFilePicker = () => inputRef.current.click();
+  const openFilePicker = () => inputRef.current?.click();
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     handleFile(e.target.files?.[0] ?? null);
     e.target.value = "";
@@ -253,7 +285,8 @@ const useChat = () => {
       isDragging: true,
     }));
   };
-  const handleDragLeave = (e) => {
+
+  const handleDragLeave = (e: React.DragEvent) => {
     e.stopPropagation();
     setTextInput((prev) => ({
       ...prev,
@@ -272,13 +305,25 @@ const useChat = () => {
     handleFile(e.dataTransfer.files[0]);
   };
 
-  console.log("Document", document);
-  console.log("message", messages);
-  console.log("audiourl", audioUrl);
+  useEffect(() => {
+    localStorage.setItem("chatDraft", JSON.stringify(chats));
+  }, [chats]);
+
+  useEffect(() => {
+    localStorage.setItem("draft", inputText);
+  }, [inputText]);
+
+
+
+  const checker = chats.find((chat) => chat.chatId === currentChatId)
+
+  console.log(checker);
+  console.log("W CHATS", chats);
+
 
   return {
     textInput,
-    messages,
+    chats,
     handleTextOnchange,
     onInputFocus,
     handleFile,
@@ -291,6 +336,7 @@ const useChat = () => {
     document,
     onRemove,
     handleSendMessage,
+    createNewChat,
   };
 };
 

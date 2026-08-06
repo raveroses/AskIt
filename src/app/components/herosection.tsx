@@ -13,8 +13,8 @@ export default function HeroSection() {
     },
   ];
   return (
-    <section className="flex md:flex-row flex-col justify-between items-center md:gap-0 gap-10 my-20 w-full">
-      <div className="md:w-[45%] w-full flex flex-col gap-10 md:pr-0 pr-5">
+    <section className="flex md:flex-row flex-col justify-between md:items-center md:text-left text-center md:gap-0 gap-10 my-20 w-full">
+      <div className="md:w-[45%] w-full flex flex-col  gap-10">
         <h1 className="md:text-6xl text-4xl font-bold">
           Practice <span className="text-logo-color"> Interviews</span> with AI
           & Get Instant Feedback
@@ -23,7 +23,7 @@ export default function HeroSection() {
           Boost your confidence, improve your answers, and land your dream job.
         </h3>
 
-        <div className="flex items-center md:gap-10 gap-5">
+        <div className="flex md:justify-normal justify-center items-center md:gap-10 gap-5">
           {buttons.map((button, index) => {
             return (
               <Link href={button.href} key={index}>

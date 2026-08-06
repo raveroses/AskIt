@@ -50,22 +50,23 @@ export default function Header() {
     },
   ];
 
-  const [navOpen, setNavOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState<boolean>(false);
 
   const handleNavOpen = () => {
-    setNavOpen((prev) => !prev);
+    setNavOpen(prev => !prev);
   };
 
-  const pathname= usePathname();
-  const isInterview= pathname && pathname === "/interview" 
+
+  const pathname = usePathname();
+  const isInterview = pathname && pathname === "/interview"
   return (
-    <header className={`relatie ${isInterview ? "px-10" :"md:px-30 px-10"} md:py-10 py-5`}>
+    <header className={`fixed top-0 inset-x-0 z-50  ${isInterview ? "px-10" : "md:px-30 px-3"} md:py-10 py-5`}>
       <div className="flex flex-row md:justify-between justify-between md:items-center">
         <div className="logo flex items-center gap-1  font-mono  ">
           <span className="text-logo-color">
             <Bot className="text-xl font-bold" />
           </span>
-          <span className="text-xl font-bold text-foreground">AskIt</span>
+          <span className="text-xl font-bold text-background">AskIt</span>
         </div>
 
         <nav className="md:flex hidden gap-10 items-center ">
@@ -97,7 +98,7 @@ export default function Header() {
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
                   transition={{ duration: 0.5 }}
-                  className="bg-foreground w-40 rounded text-black py-2 text-md font-medium text-center cursor-pointer"
+                  className="bg-background w-40 rounded text-foreground py-2 text-md font-medium text-center cursor-pointer"
                 >
                   {item.name}
                 </motion.button>
@@ -107,7 +108,7 @@ export default function Header() {
 
         <div className="md:hidden block" onClick={handleNavOpen}>
           {navOpen ? (
-            <X className="text-xl font-semibold" />
+            <X className="text-xl font-bold" />
           ) : (
             <Menu className="text-xl font-semibold" />
           )}
@@ -117,7 +118,7 @@ export default function Header() {
       <AnimatePresence>
         {navOpen && (
           <motion.div
-            className="mobile md:hidden flex gap-2 justify-between items-center bg-foreground mt-5 text-background rounded py-2 w-full overflow-x-scroll absolute top-5"
+            className="mobile md:hidden flex gap-2 justify-between items-center bg-logo-color mt-5 text-background  py-2 w-full overflow-x-scroll absolute top-10 right-0 z-30"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
@@ -143,6 +144,7 @@ export default function Header() {
           </motion.div>
         )}
       </AnimatePresence>
+
     </header>
   );
 }

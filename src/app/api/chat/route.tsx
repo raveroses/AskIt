@@ -70,17 +70,3 @@ export async function POST(request: Request) {
     );
   }
 }
-
-// async function main() {
-
-//   const response = await ai.models.generateContent({
-//     model: "gemini-3.5-flash",
-//     contents: createUserContent([
-//       createPartFromUri(myfile.uri, myfile.mimeType),
-//       "Describe this audio clip",
-//     ]),
-//   });
-//   console.log(response.text);
-// }
-
-// await main();
