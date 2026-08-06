@@ -4,7 +4,7 @@ import * as motion from "motion/react-client";
 export default function HeroSection() {
   const buttons = [
     {
-      href: "#",
+      href: "interview",
       name: "Start Mock Interview",
     },
     {
