@@ -159,7 +159,7 @@ const useChat = () => {
 
     return chat;
   };
-
+  const [isLoading, setIsLoading] = useState(false);
   const handleSendMessage = async (audioBlob?: Blob, waveform?: number[]) => {
     if (!handleIsValidation(audioBlob)) {
       alert("Please input something");
@@ -206,6 +206,7 @@ const useChat = () => {
 
 
     try {
+      setIsLoading(true);
       const data = await aiConversation(updatedConversation.perChat);
 
       const aiMessage: ChatTurn = { role: "model", text: data.result };
@@ -237,9 +238,10 @@ const useChat = () => {
         alert("Something went wrong. Please try again.");
       }
       console.error("handleSendMessage failed", error);
+    } finally {
+      setIsLoading(false);
     }
-  };
-
+  }
   const onInputFocus = (focused: boolean) => {
     setUploadingFile((prev) => ({
       ...prev,
@@ -316,7 +318,7 @@ const useChat = () => {
     localStorage.setItem("chatDraft", JSON.stringify(chats));
   }, [chats]);
 
-    useEffect(() => {
+  useEffect(() => {
     const saved = localStorage.getItem("chatDraft");
     if (saved) {
       try {
@@ -359,6 +361,7 @@ const useChat = () => {
     onRemove,
     handleSendMessage,
     createNewChat,
+    isLoading,
   };
 };
 

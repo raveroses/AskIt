@@ -56,7 +56,8 @@ export default function ImageUploading() {
     document,
     onRemove,
     handleSendMessage,
-    createNewChat
+    createNewChat,
+    isLoading
   } = useChat();
 
   const { inputText, interimTranscript } = useText();
@@ -267,7 +268,14 @@ export default function ImageUploading() {
 
               <div ref={bottomRef}></div>
             </li>
+
           ))}
+          {isLoading && (
+            <li className="flex justify-start">
+              <div className="rounded-2xl bg-gray-800 p-4 text-white">
+                Thinking...
+              </div>
+            </li>)}
         </ul>
 
         <div
@@ -320,8 +328,20 @@ export default function ImageUploading() {
 
 
               {!isRecording &&
-                <div className="rounded-full bg-gray-500 p-2 cursor-pointer">
-                  <SendHorizontal onClick={() => handleSendMessage()} />
+                // <div className="rounded-full bg-gray-500 p-2 cursor-pointer">
+                //   <SendHorizontal onClick={() => handleSendMessage()} />
+                // </div>
+                <div
+                  className={`rounded-full bg-gray-500 p-2 ${isLoading ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+                    }`}
+                >
+                  <SendHorizontal
+                    onClick={() => {
+                      if (!isLoading) {
+                        handleSendMessage();
+                      }
+                    }}
+                  />
                 </div>
               }
             </div>
