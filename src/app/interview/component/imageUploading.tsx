@@ -44,7 +44,7 @@ export default function ImageUploading() {
 
   const {
     handleTextOnchange,
-    textInput,
+    uploadingFile,
     chats,
     onInputFocus,
     handleInputChange,
@@ -104,6 +104,16 @@ export default function ImageUploading() {
 
   console.log("chat", chats);
 
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  const meassagesChecker = chats.find((chat) => chat.chatId === currentChatId)?.perChat
+  console.log("messagesChecker", meassagesChecker);
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [meassagesChecker]);
+
+
+
   return (
     <section className="w-full h-auto flex justify-between relative">
       <div className="md:block hidden">
@@ -148,7 +158,7 @@ export default function ImageUploading() {
 
       <div className="save md:w-[80%] w-full h-auto bg-linear-to-br from-black to-blue-950 md:pt-30 pt-50 md:px-50 px-5 flex flex-col gap-3 ">
         <div
-          className={`flex flex-col justify-center items-center gap-3 opacity-30 ${textInput.isDragging ? "opacity-30" : "opacity-100"} ${isTranscription || isRecording ? "opacity-50 pointer-events-none" : "cursor-pointer"}`}
+          className={`flex flex-col justify-center items-center gap-3 opacity-30 ${uploadingFile.isDragging ? "opacity-30" : "opacity-100"} ${isTranscription || isRecording ? "opacity-50 pointer-events-none" : "cursor-pointer"}`}
         >
           <h1 className="text-logo-color md:text-3xl text-2xl font-bold">
             Upload your CV to begin
@@ -242,7 +252,7 @@ export default function ImageUploading() {
                     </div>
                     <div className="flex flex-col">
                       <p className="text-white font-semibold text-sm truncate w-40">
-                        {textInput?.document_upload?.name || "document.pdf"}
+                        {uploadingFile?.document_upload?.name || "document.pdf"}
                       </p>
                       <p className="text-white/50 text-xs">PDF Document</p>
                     </div>
@@ -254,6 +264,8 @@ export default function ImageUploading() {
                   <AudioMessage base64={message.audioBase64} waveform={(message as any).waveform} />
                 )}
               </div>
+
+              <div ref={bottomRef}></div>
             </li>
           ))}
         </ul>

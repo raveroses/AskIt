@@ -22,19 +22,10 @@ type ChatStore = {
     setCurrentChatId: (id: number | null) => void;
 };
 
-const loadInitialChats = (): Chat[] => {
-    try {
-        const saved = localStorage.getItem("chatDraft");
-        if (!saved) return [];
-        const parsed = JSON.parse(saved);
-        return Array.isArray(parsed) ? parsed : [];
-    } catch {
-        return [];
-    }
-};
+
 
 const useChatStore = create<ChatStore>((set) => ({
-    chats: typeof window !== "undefined" ? loadInitialChats() : [],
+    chats: [], // same on server and client, always
     currentChatId: null,
     setChats: (updater) => set((state) => ({ chats: updater(state.chats) })),
     setCurrentChatId: (id) => set({ currentChatId: id }),

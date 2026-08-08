@@ -166,7 +166,7 @@ export default function Features() {
               alt={`${howItWorksContent[numberHowItWorksClick].heading}-image`}
               width={400}
               height={50}
-              className="absolute top-11 left-41.5 object-cover object-top h-55.75 w-[360.8px] rotate-3 rounded"
+              className="absolute top-11 left-41.5 object-cover object-top h-55.75 w-[360.8px] rotate-3 rounded-2xl"
               priority
               initial={{
                 opacity: 1,
@@ -324,19 +324,19 @@ export default function Features() {
       </section>
 
       <section className="md:pt-40 pt-20 md:px-100 px-5 ">
-        <div className="bg-logo-color rounded p-10 flex flex-col gap-10">
+        <div className="bg-logo-color rounded-2xl p-10 flex flex-col gap-10">
           <h1 className="text-background md:text-3xl text-xl font-bold text-center">
             Start practicing today and land your next job.
           </h1>
 
           <div className="flex md:flex-row flex-col items-center md:gap-10 gap-5 justify-center">
             <Link href={"#"}>
-              <button className="bg-background p-3 rounded w-50 cursor-pointer text-sm md:text-md text-foreground">
+              <button className="bg-background p-3 rounded-xl w-50 cursor-pointer text-sm md:text-md text-foreground">
                 Start Interview
               </button>
             </Link>
             <Link href={"#"}>
-              <button className="bg-background p-3 rounded w-50  cursor-pointer text-sm md:text-md text-foreground">
+              <button className="bg-background p-3 rounded-xl w-50  cursor-pointer text-sm md:text-md text-foreground">
                 Upload CV
               </button>
             </Link>

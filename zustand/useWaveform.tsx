@@ -28,8 +28,7 @@ export const useWaveform = () => {
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
 
-    historyRef.current = [];
-
+    historyRef.current = []
     let frameCount = 0;
 
     const render = () => {

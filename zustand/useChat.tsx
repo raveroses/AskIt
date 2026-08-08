@@ -32,49 +32,45 @@ const useChat = () => {
   const { setInputText, inputText, setInterimTranscript } = useText();
   const { isAudioBlob, isRecordingOn, clearAudioUrl } = useGlobal();
   const { chats, setChats, currentChatId, setCurrentChatId } = useChatStore();
+  const hasMountedChats = useRef(false);
 
-  // const [textInput, setTextInput] = useState<ChatType>(() => {
-  //   try {
-  //     const saved = localStorage.getItem("draft");
-  //     if (saved) return JSON.parse(saved);
-  //   } catch {
-  //     console.log("error");
-  //   }
-  //   return {
-  //     isOnFocus: false,
-  //     document_upload: null,
-  //     isDragging: false,
-  //   };
-  // });
+  useEffect(() => {
+    const saved = localStorage.getItem("chatDraft");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setChats(() => parsed);
+          setCurrentChatId(parsed.at(-1)?.chatId ?? null);
+        }
+      } catch {
+        // ignore corrupt data
+      }
+    }
+  }, []);
 
-  const [textInput, setTextInput] = useState<ChatType>({
+  const [uploadingFile, setUploadingFile] = useState<ChatType>({
     isOnFocus: false,
     document_upload: null,
     isDragging: false
   });
 
-  useEffect(() => {
-    const saved = localStorage.getItem("draft");
 
-    if (saved) {
-      setTextInput(JSON.parse(saved));
-    }
-  }, []);
-  const [document, setDocument] = useState(() => {
+  const [document, setDocument] = useState({ base64: "", url: "" });
+
+  useEffect(() => {
     try {
       const documentgetter = localStorage.getItem("docs");
-      if (!documentgetter) {
-        return { base64: "", url: "" };
+      if (documentgetter) {
+        const parsed = JSON.parse(documentgetter);
+        if (parsed && typeof parsed === "object") {
+          setDocument(parsed);
+        }
       }
-      const parsed = JSON.parse(documentgetter);
-      return parsed && typeof parsed === "object"
-        ? parsed
-        : { base64: "", url: "" };
     } catch (error) {
       console.log(error);
-      return { base64: "", url: "" };
     }
-  });
+  }, []);
 
   const onRemove = () => {
     setDocument({ base64: "", url: "" });
@@ -94,7 +90,13 @@ const useChat = () => {
       localStorage.setItem("draft", target.value);
     }
   };
+  useEffect(() => {
+    const saved = localStorage.getItem("draft");
 
+    if (saved) {
+      setInputText(saved);
+    }
+  }, []);
   const handleIsValidation = (blob?: Blob): boolean => {
     const hasAudioBlob = blob instanceof Blob || isAudioBlob instanceof Blob;
     return (
@@ -194,25 +196,28 @@ const useChat = () => {
 
     setChats((prev) =>
       prev.map((chat) =>
-        chat.chatId === currentChat.chatId ? updatedConversation : chat // ✅ use currentChat.chatId, not the stale currentChatId
+        chat.chatId === currentChat.chatId ? updatedConversation : chat
       )
     );
+
+    const messageText = inputText;
+    setInputText("");
+    setDocument({ base64: "", url: "" });
+
 
     try {
       const data = await aiConversation(updatedConversation.perChat);
 
       const aiMessage: ChatTurn = { role: "model", text: data.result };
 
-      // const checkAudioIfComesBeforeTitle = userMessage.audioBase64 && !updatedConversation.chatTitle
-      const shouldGenerateTitle = !currentChat.chatTitle && !inputText.trim() && hasAudioBlob;
+      const shouldGenerateTitle = !currentChat.chatTitle && !messageText.trim() && hasAudioBlob;
 
 
       setChats((prev) =>
         prev.map((chat) =>
-          chat.chatId === currentChat.chatId // ✅ same fix here
+          chat.chatId === currentChat.chatId
             ? {
               ...chat,
-              // chatTitle: checkAudioIfComesBeforeTitle ? aiMessage.text.slice(0, 20) : "",
               chatTitle: shouldGenerateTitle
                 ? aiMessage.text.slice(0, 20)
                 : chat.chatTitle,
@@ -222,9 +227,7 @@ const useChat = () => {
         )
       );
 
-      setInputText("");
       setInterimTranscript("");
-      setDocument({ url: "" });
       clearAudioUrl();
       localStorage.removeItem("draft");
     } catch (error) {
@@ -238,7 +241,7 @@ const useChat = () => {
   };
 
   const onInputFocus = (focused: boolean) => {
-    setTextInput((prev) => ({
+    setUploadingFile((prev) => ({
       ...prev,
       isOnFocus: focused,
     }));
@@ -280,7 +283,7 @@ const useChat = () => {
   const handleDragOver = (e: React.DragEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    setTextInput((prev) => ({
+    setUploadingFile((prev) => ({
       ...prev,
       isDragging: true,
     }));
@@ -288,7 +291,7 @@ const useChat = () => {
 
   const handleDragLeave = (e: React.DragEvent) => {
     e.stopPropagation();
-    setTextInput((prev) => ({
+    setUploadingFile((prev) => ({
       ...prev,
       isDragging: false,
     }));
@@ -297,7 +300,7 @@ const useChat = () => {
   const handleDrop = (e: React.DragEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    setTextInput((prev) => ({
+    setUploadingFile((prev) => ({
       ...prev,
       isDragging: false,
     }));
@@ -306,8 +309,27 @@ const useChat = () => {
   };
 
   useEffect(() => {
+    if (!hasMountedChats.current) {
+      hasMountedChats.current = true;
+      return;
+    }
     localStorage.setItem("chatDraft", JSON.stringify(chats));
   }, [chats]);
+
+    useEffect(() => {
+    const saved = localStorage.getItem("chatDraft");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setChats(() => parsed);
+          setCurrentChatId(parsed.at(-1)?.chatId ?? null);
+        }
+      } catch {
+        // ignore corrupt data
+      }
+    }
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("draft", inputText);
@@ -322,7 +344,7 @@ const useChat = () => {
 
 
   return {
-    textInput,
+    uploadingFile,
     chats,
     handleTextOnchange,
     onInputFocus,

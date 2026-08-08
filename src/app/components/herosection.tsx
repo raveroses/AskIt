@@ -23,7 +23,7 @@ export default function HeroSection() {
           Boost your confidence, improve your answers, and land your dream job.
         </h3>
 
-        <div className="flex md:justify-normal justify-center items-center md:gap-10 gap-5">
+        <div className="flex md:justify-normal justify-center items-center md:gap-10 gap-6">
           {buttons.map((button, index) => {
             return (
               <Link href={button.href} key={index}>
@@ -31,7 +31,7 @@ export default function HeroSection() {
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
                   transition={{ duration: 0.5 }}
-                  className="bg-logo-color text-background md:w-50 w-40 rounded py-3 md:text-md text-sm font-medium text-center cursor-pointer"
+                  className="bg-logo-color text-background md:w-50 w-40 rounded-xl py-3 md:text-md text-sm font-medium text-center cursor-pointer"
                 >
                   {button.name}
                 </motion.button>

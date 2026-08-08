@@ -27,10 +27,7 @@ const useGlobal = create<Store>((set) => ({
   isTranscription: false,
   audioUrl: null,
   isAudioBlob: null,
-  transcription:
-    typeof window !== "undefined"
-      ? localStorage.getItem("transcriptionDraft") || ""
-      : "",
+  transcription: "", // same on server and client, always
 
   startRecording: () => set({ isRecording: true }),
   stopRecording: () => set({ isRecording: false }),

@@ -26,6 +26,9 @@ export const useRecorder = () => {
     setIsAudioBlob,
   } = useGlobal();
 
+
+
+  
   const { setInputText, setInterimTranscript } = useText();
   const {
     setup,
