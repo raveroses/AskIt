@@ -274,7 +274,7 @@ export default function ImageUploading() {
                 )}
               </div>
 
-              {/* <div ref={bottomRef}></div> */}
+              <div ref={bottomRef}></div>
             </li>
 
           ))}
