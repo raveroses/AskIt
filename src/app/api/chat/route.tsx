@@ -16,6 +16,7 @@ export async function POST(request: Request) {
       );
     }
 
+
     const contents = messages.flatMap((msg) => {
       const parts: any[] = [];
 
@@ -52,13 +53,33 @@ export async function POST(request: Request) {
       ];
     });
 
-    const response = await ai.models.generateContent({
+    const response = await ai.models.generateContentStream({
       model: "gemini-2.5-flash",
       contents,
     });
 
-    return Response.json({
-      result: response.text,
+    // return Response.json({
+    //   result: response.text,
+    // });
+    const encoder = new TextEncoder();
+
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          for await (const chunk of response) {
+            if (chunk.text) {
+              controller.enqueue(encoder.encode(chunk.text));
+            }
+          }
+          controller.close();
+        } catch (err) {
+          controller.error(err);
+        }
+      },
+    });
+
+    return new Response(stream, {
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
     });
   } catch (error) {
     console.error("API Error:", error);

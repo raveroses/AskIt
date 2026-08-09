@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
-import { Red_Rose } from "next/font/google";
+import { Red_Rose, Geist } from "next/font/google";
 import Header from "./components/header";
 import "./globals.css";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+
+
 // import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 // import { QueryClientProvider } from "@tanstack/react-query";
 // import {queryClient} from "@/app/components/newQueryClient"
@@ -24,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={` h-full ${redRose.className} antialiased`}>
+    <html lang="en" className={cn("h-full", "antialiased", redRose.className, "font-sans", geist.variable)}>
       <body
         className="min-h-screen flex flex-col w-full h-screen bg-no-repeat bg-fixed bg-cover "
         style={{ backgroundImage: "url(/images/background.jpg)" }}

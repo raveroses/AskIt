@@ -18,7 +18,13 @@ import useChat from "../../../../zustand/useChat";
 import useText from "../../../../zustand/useText";
 import AudioMessage from "./audioMessage";
 import ReactMarkdown from "react-markdown";
-
+import {
+  MessageScroller,
+  MessageScrollerButton,
+  MessageScrollerContent,
+  MessageScrollerProvider,
+  MessageScrollerViewport,
+} from "@/components/ui/message-scroller"
 
 import dynamic from "next/dynamic";
 import useChatStore from "../../../../zustand/useChatStore";
@@ -111,7 +117,7 @@ export default function ImageUploading() {
   console.log("messagesChecker", meassagesChecker);
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [meassagesChecker]);
+  }, [meassagesChecker, isLoading]);
 
 
 
@@ -157,7 +163,7 @@ export default function ImageUploading() {
         </motion.div>
       </div>
 
-      <div className="save md:w-[80%] w-full h-auto bg-linear-to-br from-black to-blue-950 md:pt-30 pt-50 md:px-50 px-5 flex flex-col gap-3 ">
+      <div className="save md:w-[80%] w-full h-auto bg-linear-to-br from-black to-blue-950 md:pt-30 pt-50 md:px-50 px-2.5 flex flex-col gap-3 ">
         <div
           className={`flex flex-col justify-center items-center gap-3 opacity-30 ${uploadingFile.isDragging ? "opacity-30" : "opacity-100"} ${isTranscription || isRecording ? "opacity-50 pointer-events-none" : "cursor-pointer"}`}
         >
@@ -230,14 +236,16 @@ export default function ImageUploading() {
               className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`md:max-w-[70%] max-w-[90%] md:p-4 p-3 rounded-2xl text-white wrap-break-words ${message.role === "user"
-                  ? "bg-blue-600 text-right"
-                  : "bg-gray-800 text-left"
+                className={`md:max-w-[70%] max-w-[90%] md:p-4 p-2 rounded-2xl text-white wrap-break-words ${message.role === "user"
+                  ? "bg-blue-600"
+                  : "bg-gray-800"
                   }`}
               >
 
 
-                {message.text && <ReactMarkdown>{message.text}</ReactMarkdown>}
+                {message.text && message.role === "model" ? <MessageScrollerProvider autoScroll>
+                  <MessageScroller><ReactMarkdown>{message.text}</ReactMarkdown></MessageScroller>
+                </MessageScrollerProvider> : <ReactMarkdown>{message.text}</ReactMarkdown>}
 
 
                 {message.documentPdfUrl && (
@@ -266,16 +274,18 @@ export default function ImageUploading() {
                 )}
               </div>
 
-              <div ref={bottomRef}></div>
+              {/* <div ref={bottomRef}></div> */}
             </li>
 
           ))}
-          {isLoading && (
-            <li className="flex justify-start">
-              <div className="rounded-2xl bg-gray-800 p-4 text-white">
-                Thinking...
-              </div>
-            </li>)}
+          {isLoading &&
+            chats.find((chat) => chat.chatId === currentChatId)?.perChat.at(-1)?.role !== "model" && (
+              <li className="flex justify-start">
+                <div className="rounded-2xl bg-gray-800 p-4 text-white">
+                  Thinking...
+                </div>
+              </li>
+            )}
         </ul>
 
         <div
@@ -287,6 +297,7 @@ export default function ImageUploading() {
           ) : (
             <textarea
               value={inputText + interimTranscript}
+              disabled={isLoading}
               className="border-none outline-none resize-none w-full h-auto "
               placeholder="Ask me anything ..."
               onChange={handleTextOnchange}
@@ -328,20 +339,19 @@ export default function ImageUploading() {
 
 
               {!isRecording &&
-                // <div className="rounded-full bg-gray-500 p-2 cursor-pointer">
-                //   <SendHorizontal onClick={() => handleSendMessage()} />
-                // </div>
+
                 <div
-                  className={`rounded-full bg-gray-500 p-2 ${isLoading ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+                  className={`rounded-full bg-gray-500 p-2 ${isLoading
+                    ? "cursor-not-allowed opacity-50"
+                    : "cursor-pointer"
                     }`}
+                  onClick={() => {
+                    if (!isLoading) {
+                      void handleSendMessage();
+                    }
+                  }}
                 >
-                  <SendHorizontal
-                    onClick={() => {
-                      if (!isLoading) {
-                        handleSendMessage();
-                      }
-                    }}
-                  />
+                  <SendHorizontal />
                 </div>
               }
             </div>
@@ -404,4 +414,9 @@ export default function ImageUploading() {
     </section >
   );
 }
+
+
+
+
+
 

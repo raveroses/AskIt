@@ -116,28 +116,35 @@ const useChat = () => {
     });
   };
 
-  // Backend only needs the array of turns (text/audio/document per message),
-  // not the whole chat object (chatId/chatTitle are frontend-only concerns).
-  const aiConversation = async (perChat: ChatTurn[]) => {
+
+  const aiConversation = async (
+    perChat: ChatTurn[],
+    onChunk: (text: string) => void
+  ): Promise<string> => {
     const response = await fetch("/api/chat", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        messages: perChat,
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages: perChat }),
     });
 
-    if (!response.ok) {
+    if (!response.ok || !response.body) {
       throw new Error("AI request failed");
     }
 
-    return response.json();
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let accumulated = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      accumulated += decoder.decode(value);
+      onChunk(accumulated);
+    }
+
+    return accumulated;
   };
 
-  // Returns the newly created chat so callers can use it immediately,
-  // instead of relying on state that hasn't updated yet.
   const createNewChat = (): Chat => {
     // If the current chat exists and has no messages yet, just reuse it
     const existingEmptyChat = chats.find(
@@ -207,26 +214,32 @@ const useChat = () => {
 
     try {
       setIsLoading(true);
-      const data = await aiConversation(updatedConversation.perChat);
+      await aiConversation(updatedConversation.perChat, (textSoFar) => {
+        setChats((prev) =>
+          prev.map((chat) => {
+            if (chat.chatId !== currentChat.chatId) return chat;
+            const lastMessage = chat.perChat.at(-1);
+            const shouldGenerateTitle = !currentChat.chatTitle && !messageText.trim() && hasAudioBlob;
 
-      const aiMessage: ChatTurn = { role: "model", text: data.result };
+            const newAiMessage: ChatTurn = { role: "model", text: textSoFar };
 
-      const shouldGenerateTitle = !currentChat.chatTitle && !messageText.trim() && hasAudioBlob;
+            const updatedPerChat =
+              lastMessage?.role === "model"
+                ? [...chat.perChat.slice(0, -1), { ...lastMessage, text: textSoFar }]
+                : [...chat.perChat, newAiMessage];
 
-
-      setChats((prev) =>
-        prev.map((chat) =>
-          chat.chatId === currentChat.chatId
-            ? {
+            return {
               ...chat,
-              chatTitle: shouldGenerateTitle
-                ? aiMessage.text.slice(0, 20)
-                : chat.chatTitle,
-              perChat: [...chat.perChat, aiMessage]
-            }
-            : chat
-        )
-      );
+              chatTitle: shouldGenerateTitle ? textSoFar.slice(0, 20) : chat.chatTitle,
+              perChat: updatedPerChat,
+            };
+          }))
+      });
+
+
+
+
+
 
       setInterimTranscript("");
       clearAudioUrl();
