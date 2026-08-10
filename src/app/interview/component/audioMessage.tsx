@@ -122,7 +122,7 @@ export default function AudioMessage({
     };
 
     return (
-        <div className="flex items-center gap-2  justify-end  ">
+        <div className="flex w-full min-w-0 max-w-full items-center justify-end gap-2 overflow-hidden">
             <audio
                 ref={audioRef}
                 src={audioSrc}
@@ -136,7 +136,7 @@ export default function AudioMessage({
                 onEnded={() => setIsPlaying(false)}
             />
 
-            <button onClick={togglePlay} className="text-amber-400 shrink-0">
+            <button onClick={togglePlay} className="shrink-0 text-amber-400">
                 {isPlaying ? (
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
                         <rect x="6" y="4" width="4" height="16" rx="1" />
@@ -153,10 +153,10 @@ export default function AudioMessage({
                 ref={canvasRef}
                 width={isMobile ? 100 : 300}
                 height={isMobile ? 20 : 40}
-                className="flex-1 h-10 block rounded"
+                className="block h-10 min-w-0 flex-1 rounded"
             />
 
-            <span className="text-xs text-slate-400 shrink-0 font-mono">
+            <span className="shrink-0 text-xs font-mono text-slate-400">
                 {formatTime(currentTime)} / {formatTime(duration)}
             </span>
         </div>

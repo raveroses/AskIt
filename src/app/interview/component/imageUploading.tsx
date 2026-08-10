@@ -68,10 +68,17 @@ export default function ImageUploading() {
 
   const { inputText, interimTranscript } = useText();
 
-  const { currentChatId, setCurrentChatId } = useChatStore()
+  const { currentChatId, setChats, setCurrentChatId } = useChatStore()
 
 
   const handleId = (id: number) => {
+    if (currentChatId !== id) {
+      setChats((prev) =>
+        prev.filter(
+          (chat) => chat.chatId !== currentChatId || chat.perChat.length > 0
+        )
+      );
+    }
     setCurrentChatId(id)
   }
 
@@ -139,7 +146,9 @@ export default function ImageUploading() {
 
         >
 
-          <h1 className="text-white bg-amber-600 p-3 cursor-pointer" onClick={createNewChat}>New chat</h1>
+          <button className="w-full rounded-lg bg-logo-color px-4 py-3 text-left font-semibold text-black transition hover:brightness-110" onClick={createNewChat}>
+            + New chat
+          </button>
           <h1 className="text-logo-color md:text-xl text-md font-bold">
             Chat History
           </h1>
@@ -151,11 +160,14 @@ export default function ImageUploading() {
                   backgroundImage: "linear-gradient(to right, #000000, #4b5563)",
                 }}
                 transition={{ duration: 0.6 }}
-                className="py-3  rounded shadow cursor-pointer text-white md:text-md text-sm "
+                className={`cursor-pointer rounded-lg border px-3 py-3 text-sm text-white transition md:text-md ${history.chatId === currentChatId
+                  ? "border-logo-color bg-white/10"
+                  : "border-transparent hover:bg-white/10"
+                  }`}
                 key={index}
                 onClick={() => handleId(history.chatId)}
               >
-                {history.chatTitle}
+                {history.chatTitle || "Untitled chat"}
               </motion.li>
 
             )}
@@ -236,7 +248,7 @@ export default function ImageUploading() {
               className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`md:max-w-[70%] max-w-[90%] md:p-4 p-2 rounded-2xl text-white wrap-break-words ${message.role === "user"
+                className={`min-w-0 max-w-[90%] overflow-hidden rounded-2xl p-2 text-white wrap-break-words md:max-w-[70%] md:p-4 ${message.role === "user"
                   ? "bg-blue-600"
                   : "bg-gray-800"
                   }`}
@@ -285,16 +297,16 @@ export default function ImageUploading() {
           {isLoading &&
             chats.find((chat) => chat.chatId === currentChatId)?.perChat.at(-1)?.role !== "model" && (
               <li className="flex justify-start">
-                <div className="rounded-2xl bg-gray-800 p-4 text-white">
-                  Thinking...
+                <div className="flex items-center gap-1 rounded-2xl bg-gray-800 px-4 py-3 text-sm text-white/80">
+                  <span>Thinking</span>
+                  <span className="animate-pulse">...</span>
                 </div>
               </li>
             )}
         </ul>
 
         <div
-          className={`messagesender bg-blue-950 rounded-xl py-3 md:w-[60%] w-full md:h-auto
-         flex gap-0 flex-col fixed md:bottom-5 bottom-2 md:left-[30%] left-0 right-0 px-3  `}
+          className={`messagesender fixed bottom-2 left-0 right-0 z-20 flex w-full flex-col gap-2 rounded-2xl border border-white/10 bg-blue-950/95 px-3 py-3 shadow-2xl backdrop-blur md:bottom-5 md:left-[30%] md:w-[60%] md:px-4`}
         >
           {document.url ? (
             <PdfPreview documentUrl={document.url} onRemove={onRemove} />
@@ -302,7 +314,7 @@ export default function ImageUploading() {
             <textarea
               value={inputText + interimTranscript}
               disabled={isLoading}
-              className="border-none outline-none resize-none w-full h-auto "
+              className="min-h-10 w-full resize-none border-none bg-transparent px-1 py-2 text-white outline-none placeholder:text-white/40"
               placeholder="Ask me anything ..."
               onChange={handleTextOnchange}
               onFocus={() => onInputFocus(true)}

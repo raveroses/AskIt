@@ -147,7 +147,6 @@ const useChat = () => {
   };
 
   const createNewChat = (): Chat => {
-    // If the current chat exists and has no messages yet, just reuse it
     const existingEmptyChat = chats.find(
       (chat) => chat.chatId === currentChatId && chat.perChat.length === 0
     );
