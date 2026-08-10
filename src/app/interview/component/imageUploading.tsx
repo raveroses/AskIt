@@ -270,7 +270,11 @@ export default function ImageUploading() {
                 )}
 
                 {message.audioBase64 && (
-                  <AudioMessage base64={message.audioBase64} waveform={(message as any).waveform} />
+                  <AudioMessage
+                    base64={message.audioBase64}
+                    mimeType={message.audioMimeType}
+                    waveform={(message as any).waveform}
+                  />
                 )}
               </div>
 

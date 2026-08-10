@@ -4,6 +4,7 @@ type ChatTurn = {
     role: "user" | "model";
     text: string;
     audioBase64?: string;
+    audioMimeType?: string;
     documentBase64?: string;
     isAudioUrl?: string | null;
     documentPdfUrl?: string;

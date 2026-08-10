@@ -16,6 +16,7 @@ type ChatTurn = {
   role: "user" | "model";
   text: string;
   audioBase64?: string;
+  audioMimeType?: string;
   documentBase64?: string;
   isAudioUrl?: string | null;
   documentPdfUrl?: string;
@@ -189,6 +190,7 @@ const useChat = () => {
       role: "user",
       text: inputText,
       audioBase64: hasAudioBlob ? await blobToBase64(blobToSend) : undefined,
+      audioMimeType: hasAudioBlob ? blobToSend.type : undefined,
       documentBase64: document.base64 || undefined,
       isAudioUrl: audioUrls,
       documentPdfUrl: document.url,

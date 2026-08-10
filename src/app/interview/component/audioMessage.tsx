@@ -19,9 +19,11 @@ function base64ToBlobUrl(base64: string, mimeType = "audio/webm") {
 
 export default function AudioMessage({
     base64,
+    mimeType = "audio/webm",
     waveform = [],
 }: {
     base64: string;
+    mimeType?: string;
     waveform?: number[];
 }) {
     const audioRef = useRef<HTMLAudioElement>(null);
@@ -34,12 +36,12 @@ export default function AudioMessage({
     // Only recompute the blob URL when the base64 actually changes
     const audioSrc = useMemo(() => {
         try {
-            return base64ToBlobUrl(base64);
+            return base64ToBlobUrl(base64, mimeType);
         } catch (error) {
             console.error("Could not decode voice message", error);
             return "";
         }
-    }, [base64]);
+    }, [base64, mimeType]);
 
     // Clean up the object URL when it's replaced or the component unmounts
     useEffect(() => {
@@ -97,6 +99,11 @@ export default function AudioMessage({
                 audio.pause();
                 setIsPlaying(false);
             } else {
+                document.querySelectorAll("audio").forEach((otherAudio) => {
+                    if (otherAudio !== audio) {
+                        otherAudio.pause();
+                    }
+                });
                 await audio.play();
                 setIsPlaying(true);
             }
@@ -125,6 +132,7 @@ export default function AudioMessage({
                     setDuration(audioRef.current?.duration || 0)
                 }
                 onError={() => console.error("Voice message could not be loaded", audioRef.current?.error)}
+                onPause={() => setIsPlaying(false)}
                 onEnded={() => setIsPlaying(false)}
             />
 
