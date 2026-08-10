@@ -60,7 +60,7 @@ export default function Header() {
   const pathname = usePathname();
   const isInterview = pathname && pathname === "/interview"
   return (
-    <header className={`fixed top-0 inset-x-0 z-50  ${isInterview ? "px-10" : "md:px-30 px-3"} md:py-10 py-5`}>
+    <header className={`fixed inset-x-0 top-0 z-50 px-4 py-4 md:px-30 md:py-10 ${isInterview ? "md:px-10" : ""}`}>
       <div className="flex flex-row md:justify-between justify-between md:items-center">
         <div className="logo flex items-center gap-1  font-mono  ">
           <span className="text-logo-color">

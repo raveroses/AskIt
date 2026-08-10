@@ -175,7 +175,7 @@ export default function ImageUploading() {
         </motion.div>
       </div>
 
-      <div className="save md:w-[80%] w-full h-auto bg-linear-to-br from-black to-blue-950 md:pt-30 pt-50 md:px-50 px-2.5 flex flex-col gap-3 ">
+      <div className="save flex min-h-screen w-full flex-col gap-3 bg-linear-to-br from-black to-blue-950 px-3 pb-36 pt-28 md:w-[80%] md:px-50 md:pb-40 md:pt-30 ">
         <div
           className={`flex flex-col justify-center items-center gap-3 opacity-30 ${uploadingFile.isDragging ? "opacity-30" : "opacity-100"} ${isTranscription || isRecording ? "opacity-50 pointer-events-none" : "cursor-pointer"}`}
         >
@@ -191,7 +191,7 @@ export default function ImageUploading() {
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             onClick={openFilePicker}
-            className="flex flex-col gap-5 items-center border border-dotted border-logo-color rounded-2xl md:w-150 w-full p-10 cursor-pointer "
+            className="flex w-full cursor-pointer flex-col items-center gap-5 rounded-2xl border border-dotted border-logo-color p-6 md:w-150 md:p-10"
           >
             <Upload />
             <input
@@ -222,7 +222,7 @@ export default function ImageUploading() {
             exit={{
               x: "-200vw",
             }}
-            className="flex flex-col justify-center items-center  gap-10 py-30"
+            className="flex flex-col items-center justify-center gap-4 py-8 md:gap-10 md:py-30"
           >
             <Image
               src="/images/cyber-face.png"
@@ -233,7 +233,7 @@ export default function ImageUploading() {
               className="rounded-full md:block hidden "
             />
 
-            <h1 className="md:text-4xl text-xl  font-bold md:px-40 p-5 text-center">
+            <h1 className="p-2 text-center text-xl font-bold md:px-40 md:p-5 md:text-4xl">
               Do you want to start your{" "}
               <span className="text-logo-color">interview Journey </span> today
               ?
@@ -241,11 +241,11 @@ export default function ImageUploading() {
           </motion.div>
         </AnimatePresence>
 
-        <ul className="chatarea flex flex-col gap-6 w-full mb-40">
+        <ul className="chatarea flex w-full flex-col gap-4 mb-8 md:mb-40">
           {currentChatId !== null && chats.find((chat) => chat.chatId === currentChatId)?.perChat.map((message, index) => (
             <li
               key={`${message.role}-${index}`}
-              className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+              className={`flex w-full ${message.role === "user" ? "justify-end" : "justify-start"}`}
             >
               <div
                 className={`min-w-0 max-w-[90%] overflow-hidden rounded-2xl p-2 text-white wrap-break-words md:max-w-[70%] md:p-4 ${message.role === "user"
@@ -262,22 +262,22 @@ export default function ImageUploading() {
 
                 {message.documentPdfUrl && (
                   <div
-                    className={`flex items-center gap-3 rounded-xl p-4 w-70 cursor-pointer transition ${message.role === "user"
+                    className={`flex w-full max-w-56 items-center gap-2 rounded-xl p-2 transition md:w-70 md:max-w-none md:gap-3 md:p-4 ${message.role === "user"
                       ? "bg-blue-700 hover:bg-blue-600"
                       : "bg-white/10 hover:bg-white/20"
                       }`}
                     onClick={() => window.open(message.documentPdfUrl, "_blank")}
                   >
-                    <div className="bg-amber-500 rounded-lg p-3 text-white text-2xl">
+                    <div className="rounded-lg bg-amber-500 p-2 text-lg text-white md:p-3 md:text-2xl">
                       📄
                     </div>
                     <div className="flex flex-col">
-                      <p className="text-white font-semibold text-sm truncate w-40">
+                      <p className="w-28 truncate text-sm font-semibold text-white md:w-40">
                         {uploadingFile?.document_upload?.name || "document.pdf"}
                       </p>
                       <p className="text-white/50 text-xs">PDF Document</p>
                     </div>
-                    <div className="ml-auto text-white/50 text-lg">›</div>
+                    <div className="ml-auto text-lg text-white/50">›</div>
                   </div>
                 )}
 
@@ -306,7 +306,7 @@ export default function ImageUploading() {
         </ul>
 
         <div
-          className={`messagesender fixed bottom-2 left-0 right-0 z-20 flex w-full flex-col gap-2 rounded-2xl border border-white/10 bg-blue-950/95 px-3 py-3 shadow-2xl backdrop-blur md:bottom-5 md:left-[30%] md:w-[60%] md:px-4`}
+          className={`messagesender fixed bottom-2 left-2 right-2 z-20 flex w-auto flex-col gap-2 rounded-2xl border border-white/10 bg-blue-950/95 px-3 py-3 shadow-2xl backdrop-blur md:bottom-5 md:left-[30%] md:right-auto md:w-[60%] md:px-4`}
         >
           {document.url ? (
             <PdfPreview documentUrl={document.url} onRemove={onRemove} />
@@ -314,7 +314,7 @@ export default function ImageUploading() {
             <textarea
               value={inputText + interimTranscript}
               disabled={isLoading}
-              className="min-h-10 w-full resize-none border-none bg-transparent px-1 py-2 text-white outline-none placeholder:text-white/40"
+              className="min-h-10 max-h-32 w-full resize-none overflow-y-auto border-none bg-transparent px-1 py-2 text-white outline-none placeholder:text-white/40"
               placeholder="Ask me anything ..."
               onChange={handleTextOnchange}
               onFocus={() => onInputFocus(true)}
@@ -393,7 +393,7 @@ export default function ImageUploading() {
           duration: 1,
         }}
         // className="chat hidden md:w-[20%] w-[40%] min-h-screen md:p-10 p-3 md:flex flex-col gap-10 bg-linear-to-br from-black to-blue-950 md:static absolute left-0 z-10 "
-        className={`chat w-[40%] h-screen px-3 py-10 md:hidden ${openTab ? "flex" : "hidden"} flex-col gap-5 bg-linear-to-br from-black to-blue-950 fixed left-0 top-0 z-60 overflow-y-auto shadow `}
+        className={`chat h-screen w-[85%] max-w-sm px-4 py-10 md:hidden ${openTab ? "flex" : "hidden"} flex-col gap-5 bg-linear-to-br from-black to-blue-950 fixed left-0 top-0 z-60 overflow-y-auto shadow `}
         ref={toggleRef}
 
       >
@@ -417,11 +417,14 @@ export default function ImageUploading() {
                 backgroundImage: "linear-gradient(to right, #000000, #4b5563)",
               }}
               transition={{ duration: 0.6 }}
-              className="py-1 rounded shadow cursor-pointer text-white text-sm "
+              className={`cursor-pointer rounded-lg border px-3 py-3 text-sm text-white transition ${history.chatId === currentChatId
+                ? "border-logo-color bg-white/10"
+                : "border-transparent hover:bg-white/10"
+                }`}
               key={index}
               onClick={() => handleId(history.chatId)}
             >
-              {history.chatTitle}
+              {history.chatTitle || "Untitled chat"}
             </motion.li>
 
           )}

@@ -3,6 +3,7 @@
 import { Document, Page } from "react-pdf";
 import { CircleX } from "lucide-react";
 import { pdfjs } from "react-pdf";
+import useIsMobile from "../../../../hooks/useIsMobile";
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.min.mjs",
   import.meta.url,
@@ -14,13 +15,15 @@ export default function PdfPreview({
   documentUrl: string;
   onRemove: () => void;
 }) {
+  const isMobile = useIsMobile();
+
   return (
-    <div className="overflow-hidden rounded-lg bg-white w-20  relative group">
+    <div className="relative w-16 overflow-hidden rounded-lg bg-white md:w-20 group">
       <Document file={documentUrl} loading={<></>} noData={<></>}>
         <Page
           pageNumber={1}
           loading={<></>}
-          width={80}
+          width={isMobile ? 64 : 80}
           renderTextLayer={false}
           renderAnnotationLayer={false}
         />
