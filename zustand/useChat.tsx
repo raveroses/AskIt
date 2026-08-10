@@ -139,9 +139,11 @@ const useChat = () => {
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      accumulated += decoder.decode(value);
+      accumulated += decoder.decode(value, { stream: true });
       onChunk(accumulated);
     }
+
+    accumulated += decoder.decode();
 
     return accumulated;
   };

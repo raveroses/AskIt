@@ -33,7 +33,6 @@ const PdfPreview = dynamic(() => import("./PdfPreview"), {
   ssr: false,
   loading: () => <></>,
 });
-
 // import { Document, Page } from "react-pdf";
 
 export default function ImageUploading() {
@@ -63,12 +62,12 @@ export default function ImageUploading() {
     onRemove,
     handleSendMessage,
     createNewChat,
-    isLoading
+    isLoading,
   } = useChat();
 
   const { inputText, interimTranscript } = useText();
 
-  const { currentChatId, setChats, setCurrentChatId } = useChatStore()
+  const { currentChatId, setChats, setCurrentChatId } = useChatStore();
 
 
   const handleId = (id: number) => {
@@ -82,8 +81,8 @@ export default function ImageUploading() {
     setCurrentChatId(id)
   }
 
-  const toggleRef = useRef<null | HTMLDivElement>(null)
-  const [openTab, setOpenTab] = useState<boolean>(false)
+  const toggleRef = useRef<null | HTMLDivElement>(null);
+  const [openTab, setOpenTab] = useState<boolean>(false);
 
   const handleTabOpen = () => {
     console.log("Opening my menu...");
@@ -108,9 +107,7 @@ export default function ImageUploading() {
     };
   }, [openTab]);
 
-  console.log("openTab", openTab);
-
-  console.log("toggleRef", toggleRef)
+  console.log("toggleRef", toggleRef);
 
   useEffect(() => {
     console.log(openTab);
@@ -142,7 +139,7 @@ export default function ImageUploading() {
             duration: 1,
           }}
           // className="chat hidden md:w-[20%] w-[40%] min-h-screen md:p-10 p-3 md:flex flex-col gap-10 bg-linear-to-br from-black to-blue-950 md:static absolute left-0 z-10 "
-          className="chat md:w-[20%] w-[40%] h-screen md:p-10 p-3 md:flex flex-col gap-10 bg-linear-to-br from-black to-blue-950 fixed left-0 top-20 z-10 overflow-y-auto"
+          className="chat fixed left-0 top-20 z-10 flex h-screen w-[40%] flex-col gap-6 overflow-y-auto bg-linear-to-br from-black to-blue-950 p-3 md:w-[20%] md:gap-8 md:p-8"
 
         >
 
@@ -175,7 +172,7 @@ export default function ImageUploading() {
         </motion.div>
       </div>
 
-      <div className="save flex min-h-screen w-full flex-col gap-3 bg-linear-to-br from-black to-blue-950 px-3 pb-36 pt-28 md:w-[80%] md:px-50 md:pb-40 md:pt-30 ">
+      <div className="save flex min-h-screen w-full flex-col gap-3 bg-linear-to-br from-black to-blue-950 px-3 pb-36 pt-28 md:w-[80%] md:px-16 md:pb-36 md:pt-24 lg:px-24">
         <div
           className={`flex flex-col justify-center items-center gap-3 opacity-30 ${uploadingFile.isDragging ? "opacity-30" : "opacity-100"} ${isTranscription || isRecording ? "opacity-50 pointer-events-none" : "cursor-pointer"}`}
         >
@@ -222,7 +219,7 @@ export default function ImageUploading() {
             exit={{
               x: "-200vw",
             }}
-            className="flex flex-col items-center justify-center gap-4 py-8 md:gap-10 md:py-30"
+            className="flex flex-col items-center justify-center gap-4 py-8 md:gap-8 md:py-16 lg:py-20"
           >
             <Image
               src="/images/cyber-face.png"
@@ -233,7 +230,7 @@ export default function ImageUploading() {
               className="rounded-full md:block hidden "
             />
 
-            <h1 className="p-2 text-center text-xl font-bold md:px-40 md:p-5 md:text-4xl">
+            <h1 className="p-2 text-center text-xl font-bold md:px-16 md:p-5 md:text-4xl lg:px-24">
               Do you want to start your{" "}
               <span className="text-logo-color">interview Journey </span> today
               ?

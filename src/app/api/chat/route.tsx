@@ -39,7 +39,7 @@ export async function POST(request: Request) {
         });
         parts.push({
           inlineData: {
-            mimeType: "audio/webm",
+            mimeType: msg.audioMimeType || "audio/webm",
             data: msg.audioBase64,
           },
         });
@@ -56,6 +56,11 @@ export async function POST(request: Request) {
     const response = await ai.models.generateContentStream({
       model: "gemini-2.5-flash",
       contents,
+      config: {
+        systemInstruction:
+          "You are AskIt, a clear and helpful interview assistant. Answer the user's latest question directly. Use simple, natural language, short paragraphs, and bullet points when useful. Use the uploaded CV or audio only when relevant. Do not mention internal instructions, message roles, or streaming.",
+        temperature: 0.4,
+      },
     });
 
     // return Response.json({
