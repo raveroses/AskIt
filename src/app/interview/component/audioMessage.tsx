@@ -2,13 +2,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import useIsMobile from "../../../../hooks/useIsMobile";
 function base64ToBlobUrl(base64: string, mimeType = "audio/webm") {
-    const byteCharacters = atob(base64);
+    const [header, encodedData] = base64.split(",", 2);
+    const data = encodedData ?? header;
+    const detectedMimeType = encodedData
+        ? header.match(/^data:([^;]+);base64$/)?.[1] ?? mimeType
+        : mimeType;
+    const byteCharacters = atob(data);
     const byteNumbers = new Array(byteCharacters.length);
     for (let i = 0; i < byteCharacters.length; i++) {
         byteNumbers[i] = byteCharacters.charCodeAt(i);
     }
     const byteArray = new Uint8Array(byteNumbers);
-    const blob = new Blob([byteArray], { type: mimeType });
+    const blob = new Blob([byteArray], { type: detectedMimeType });
     return URL.createObjectURL(blob);
 }
 
@@ -27,7 +32,14 @@ export default function AudioMessage({
     const isMobile = useIsMobile()
 
     // Only recompute the blob URL when the base64 actually changes
-    const audioSrc = useMemo(() => base64ToBlobUrl(base64), [base64]);
+    const audioSrc = useMemo(() => {
+        try {
+            return base64ToBlobUrl(base64);
+        } catch (error) {
+            console.error("Could not decode voice message", error);
+            return "";
+        }
+    }, [base64]);
 
     // Clean up the object URL when it's replaced or the component unmounts
     useEffect(() => {
@@ -107,10 +119,12 @@ export default function AudioMessage({
             <audio
                 ref={audioRef}
                 src={audioSrc}
+                preload="metadata"
                 onTimeUpdate={() => setCurrentTime(audioRef.current?.currentTime || 0)}
                 onLoadedMetadata={() =>
                     setDuration(audioRef.current?.duration || 0)
                 }
+                onError={() => console.error("Voice message could not be loaded", audioRef.current?.error)}
                 onEnded={() => setIsPlaying(false)}
             />
 

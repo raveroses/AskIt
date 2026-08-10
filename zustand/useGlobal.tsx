@@ -16,6 +16,7 @@ type Store = {
   setAudioUrl: (url: string) => void;
   setTranscription: (text: string) => void;
   setIsAudioBlob: (blob: Blob | null) => void;
+  clearAudioBlob: () => void;
   setIsRecordingOn: () => void;
   clearIsRecordingOn: () => void;
   clearAudioUrl: () => void;
@@ -40,6 +41,7 @@ const useGlobal = create<Store>((set) => ({
       return { transcription: text };
     }),
   setIsAudioBlob: (blob) => set({ isAudioBlob: blob }),
+  clearAudioBlob: () => set({ isAudioBlob: null }),
   setIsRecordingOn: () => set({ isRecordingOn: true }),
   clearIsRecordingOn: () => set({ isRecordingOn: false }),
   clearAudioUrl: () => set({ audioUrl: null }),

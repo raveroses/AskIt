@@ -30,7 +30,7 @@ type Chat = {
 
 const useChat = () => {
   const { setInputText, inputText, setInterimTranscript } = useText();
-  const { isAudioBlob, isRecordingOn, clearAudioUrl } = useGlobal();
+  const { isRecordingOn, clearAudioUrl, clearAudioBlob } = useGlobal();
   const { chats, setChats, currentChatId, setCurrentChatId } = useChatStore();
   const hasMountedChats = useRef(false);
 
@@ -98,7 +98,7 @@ const useChat = () => {
     }
   }, []);
   const handleIsValidation = (blob?: Blob): boolean => {
-    const hasAudioBlob = blob instanceof Blob || isAudioBlob instanceof Blob;
+    const hasAudioBlob = blob instanceof Blob;
     return (
       !!inputText.trim() || !!document.url || !!isRecordingOn || hasAudioBlob
     );
@@ -176,7 +176,7 @@ const useChat = () => {
     const currentChat =
       chats.find((chat) => chat.chatId === currentChatId) ?? createNewChat();
 
-    const blobToSend = audioBlob ?? isAudioBlob;
+    const blobToSend = audioBlob;
     const hasAudioBlob = blobToSend instanceof Blob;
     const audioUrls = audioBlob ? URL.createObjectURL(audioBlob) : null;
 
@@ -243,6 +243,7 @@ const useChat = () => {
 
       setInterimTranscript("");
       clearAudioUrl();
+      clearAudioBlob();
       localStorage.removeItem("draft");
     } catch (error) {
       if (error instanceof TypeError) {
@@ -252,6 +253,7 @@ const useChat = () => {
       }
       console.error("handleSendMessage failed", error);
     } finally {
+      clearAudioBlob();
       setIsLoading(false);
     }
   }
